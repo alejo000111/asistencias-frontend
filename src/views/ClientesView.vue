@@ -98,7 +98,7 @@ const padresActivosAlDia = computed(() => padresActivos.value.filter(p => p.deud
 
 const cargarPadres = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/finanzas/padres');
+    const response = await axios.get('/api/finanzas/padres');
     
     padres.value = response.data.map(padre => {
       let deuda = 0;

@@ -171,7 +171,7 @@ const toggleDeudas = async () => {
   // Solo hace la consulta si abrimos el botón (para ahorrar recursos)
   if (mostrarDeudas.value) {
     try {
-      const response = await axios.get(`http://localhost:8080/api/finanzas/deudas/${props.padre.id}`);
+      const response = await axios.get(`/api/finanzas/deudas/${props.padre.id}`);
       listaDeudas.value = response.data;
     } catch (error) {
       console.error("Error al cargar deudas:", error);
@@ -213,7 +213,7 @@ const toggleHistorial = () => {
 const cargarHistorialCompleto = async () => {
   cargandoHistorial.value = true;
   try {
-    const response = await axios.get(`http://localhost:8080/api/finanzas/historial/${props.padre.id}`);
+    const response = await axios.get(`/api/finanzas/historial/${props.padre.id}`);
     historialPadre.value = response.data;
   } catch (error) {
     console.error("Error cargando historial del padre:", error);
@@ -256,7 +256,7 @@ const cancelarEdicion = () => {
 
 const guardarEdicion = async () => {
   try {
-    await axios.put(`http://localhost:8080/api/registro/padre/${props.padre.id}`, null, {
+    await axios.put(`/api/registro/padre/${props.padre.id}`, null, {
       params: { nombreCompleto: props.padre.editNombre, telefono: props.padre.editTelefono, estado: props.padre.editEstado }
     });
 
@@ -264,7 +264,7 @@ const guardarEdicion = async () => {
     
     if (props.padre.students && props.padre.students.length > 0) {
       await Promise.all(props.padre.students.map(hijo => 
-        axios.put(`http://localhost:8080/api/registro/deportista/${hijo.id}`, null, {
+        axios.put(`/api/registro/deportista/${hijo.id}`, null, {
           params: { 
             nombreCompleto: hijo.editNombre, 
             edad: hijo.editEdad, 
@@ -291,7 +291,7 @@ const guardarEdicion = async () => {
 const enviarAbono = async () => {
   if (!props.padre.nuevoAbono || props.padre.nuevoAbono <= 0) return alert("⚠️ Monto inválido.");
   try {
-    await axios.post('http://localhost:8080/api/finanzas/abono', null, {
+    await axios.post('/api/finanzas/abono', null, {
       params: { 
         parentId: props.padre.id, 
         monto: props.padre.nuevoAbono, 
@@ -311,7 +311,7 @@ const eliminarDeportista = async (idHijo, nombreHijo) => {
   if (!confirm(`¿Estás SEGURO de eliminar a ${nombreHijo}?`)) return;
   
   try {
-    await axios.delete(`http://localhost:8080/api/finanzas/deportista/${idHijo}`);
+    await axios.delete(`/api/finanzas/deportista/${idHijo}`);
     
     alert(`✅ ${nombreHijo} eliminado correctamente.`);
 
@@ -332,7 +332,7 @@ const eliminarPadre = async () => {
   if (!confirm(`🚨 ¡ADVERTENCIA! ¿Estás seguro de eliminar a ${props.padre.nombreCompleto} y TODOS sus deportistas?`)) return;
   
   try {
-    await axios.delete(`http://localhost:8080/api/finanzas/padre/${props.padre.id}`);
+    await axios.delete(`/api/finanzas/padre/${props.padre.id}`);
     alert("✅ Familia eliminada correctamente.");
     emit('clienteActualizado'); 
   } catch (error) {

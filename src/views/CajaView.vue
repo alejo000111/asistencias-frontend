@@ -115,7 +115,7 @@ const formatearFecha = (fechaDato) => {
 
 const cargarHistorial = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/finanzas/historial');
+    const response = await axios.get('/api/finanzas/historial');
     historial.value = response.data.sort((a, b) => b.id - a.id);
     paginaActual.value = 1; // Reseteamos a la página 1 al cargar nuevos datos
   } catch (error) {

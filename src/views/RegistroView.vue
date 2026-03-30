@@ -103,7 +103,7 @@ const calcularEdad = () => {
 
 const cargarPadres = async () => {
   try {
-    const res = await axios.get('http://localhost:8080/api/finanzas/padres');
+    const res = await axios.get('/api/finanzas/padres');
     padres.value = res.data.filter(padre => padre.estado === 'ACTIVO' || !padre.estado);
   } catch (error) { console.error(error); }
 };
@@ -114,7 +114,7 @@ const enviarPadre = async () => {
     return;
   }
   try {
-    await axios.post('http://localhost:8080/api/registro/padre', null, { params: formPadre.value });
+    await axios.post('/api/registro/padre', null, { params: formPadre.value });
     alert("✅ Padre registrado con éxito");
     formPadre.value = { nombre: '', apellido: '', telefono: '' };
     cargarPadres();
@@ -127,7 +127,7 @@ const enviarDeportista = async () => {
     return;
   }
   try {
-    await axios.post('http://localhost:8080/api/registro/deportista', null, { params: formDeportista.value });
+    await axios.post('/api/registro/deportista', null, { params: formDeportista.value });
     alert("✅ Deportista registrado con éxito");
     // Al limpiar el form, volvemos a poner 'INICIACIÓN' por defecto para que no quede en blanco
     formDeportista.value = { parentId: '', nombre: '', apellido: '', edad: '', fechaNacimiento: '', nivel: 'INICIACIÓN' };

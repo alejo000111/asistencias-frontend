@@ -93,7 +93,7 @@ const estudiantesFiltrados = computed(() => {
 
 const cargarEstudiantes = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/finanzas/padres');
+    const response = await axios.get('/api/finanzas/padres');
     const allStudents = [];
     
     response.data.forEach(padre => {
@@ -128,7 +128,7 @@ const registrarAsistencias = async () => {
 
   try {
     await Promise.all(presentes.map(est => 
-      axios.post('http://localhost:8080/api/finanzas/asistencia', null, {
+      axios.post('/api/finanzas/asistencia', null, {
         params: {
           studentId: est.id,
           tipoClase: tipoClase.value,

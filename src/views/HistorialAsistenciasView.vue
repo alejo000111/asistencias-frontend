@@ -100,7 +100,7 @@ const asistenciasPaginadas = computed(() => {
 
 const cargarAsistencias = async () => {
   try {
-    const response = await axios.get('http://localhost:8080/api/finanzas/historial-asistencias');
+    const response = await axios.get('/api/finanzas/historial-asistencias');
     const raw = response.data;
     const grupos = {};
     
@@ -201,7 +201,7 @@ const alumnosPagos = (estudiantes) => estudiantes.filter(e => e.pagada);
 const eliminarRegistro = async (idAsistencia) => {
   if (!confirm("¿Seguro que deseas quitar a este estudiante de esta clase?")) return;
   try {
-    await axios.delete(`http://localhost:8080/api/finanzas/asistencia/${idAsistencia}`);
+    await axios.delete(`/api/finanzas/asistencia/${idAsistencia}`);
     cargarAsistencias(); 
   } catch (error) { alert("Error al eliminar."); }
 };
@@ -210,7 +210,7 @@ const eliminarListaCompleta = async (grupo) => {
   if (!confirm("¿Seguro que deseas eliminar TODA esta lista de asistencia? Esto no se puede deshacer.")) return;
   try {
     await Promise.all(grupo.estudiantes.map(est => 
-      axios.delete(`http://localhost:8080/api/finanzas/asistencia/${est.idAsistencia}`)
+      axios.delete(`/api/finanzas/asistencia/${est.idAsistencia}`)
     ));
     cargarAsistencias();
   } catch (error) { alert("Error al eliminar la lista."); }
