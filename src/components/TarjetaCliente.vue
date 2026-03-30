@@ -311,7 +311,7 @@ const eliminarDeportista = async (idHijo, nombreHijo) => {
   if (!confirm(`¿Estás SEGURO de eliminar a ${nombreHijo}?`)) return;
   
   try {
-    await axios.delete(`/api/finanzas/deportista/${idHijo}`);
+    await axios.delete(`/api/registro/deportista/${idHijo}`);
     
     alert(`✅ ${nombreHijo} eliminado correctamente.`);
 
@@ -332,7 +332,7 @@ const eliminarPadre = async () => {
   if (!confirm(`🚨 ¡ADVERTENCIA! ¿Estás seguro de eliminar a ${props.padre.nombreCompleto} y TODOS sus deportistas?`)) return;
   
   try {
-    await axios.delete(`/api/finanzas/padre/${props.padre.id}`);
+    await axios.delete(`/api/registro/padre/${props.padre.id}`);
     alert("✅ Familia eliminada correctamente.");
     emit('clienteActualizado'); 
   } catch (error) {
