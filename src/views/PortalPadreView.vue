@@ -39,7 +39,7 @@
             <div class="card-body text-center p-3">
               <div class="text-muted small mb-1">Saldo a Favor (Abono)</div>
               <div class="fs-3 fw-bold text-success">
-                {{ formatearDinero(padre.saldoAbono || 0) }}
+                {{ formatearDinero(Math.max(0, padre.saldoAbono || 0)) }}
               </div>
             </div>
           </div>
@@ -116,9 +116,9 @@
                     <td colspan="3" class="text-end text-muted">Subtotal de clases:</td>
                     <td class="text-end fw-semibold">{{ formatearDinero(subtotalDeudas) }}</td>
                   </tr>
-                  <tr v-if="Number(padre.saldoAbono || 0) > 0">
+                  <tr v-if="Math.max(0, Number(padre.saldoAbono || 0)) > 0">
                     <td colspan="3" class="text-end text-muted">Menos saldo a favor (Abono):</td>
-                    <td class="text-end text-success fw-semibold">-{{ formatearDinero(padre.saldoAbono || 0) }}</td>
+                    <td class="text-end text-success fw-semibold">-{{ formatearDinero(Math.max(0, padre.saldoAbono || 0)) }}</td>
                   </tr>
                   <tr class="fw-bold">
                     <td colspan="3" class="text-end fs-5 text-dark">Total a pagar:</td>
@@ -200,8 +200,8 @@ const subtotalDeudas = computed(() => {
 
 const totalAPagar = computed(() => {
   const totalDeuda = Number(deudaTotal.value || 0)
-  const saldo = Number(padre.value.saldoAbono || 0)
-  return Math.max(0, totalDeuda - saldo)
+  const abonoValido = Math.max(0, Number(padre.value.saldoAbono || 0))
+  return Math.max(0, totalDeuda - abonoValido)
 })
 
 function descripcionMovimiento(log) {
