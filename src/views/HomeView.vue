@@ -35,9 +35,10 @@
           <table class="table table-hover align-middle border">
             <thead class="table-light border-bottom border-dark">
               <tr>
-                <th class="text-center" style="width: 15%;">Presente</th>
-                <th :style="{ width: tipoClase === 'GRUPAL' ? '55%' : '85%' }">Estudiante</th>
-                <th v-if="tipoClase === 'GRUPAL'" class="text-center" style="width: 30%;">Media Clase</th>
+                <th class="text-center" style="width: 10%;">Presente</th>
+                <th :style="{ width: tipoClase === 'GRUPAL' ? '40%' : '60%' }">Estudiante</th>
+                <th v-if="tipoClase === 'GRUPAL'" class="text-center" style="width: 20%;">Media Clase</th>
+                <th style="width: 150px;">Precio Especial ($)</th>
               </tr>
             </thead>
             <tbody>
@@ -49,9 +50,12 @@
                 <td v-if="tipoClase === 'GRUPAL'" class="text-center">
                   <input class="form-check-input fs-5 border-secondary shadow-sm" type="checkbox" v-model="estudiante.esMediaClase" :disabled="!estudiante.presente">
                 </td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" :value="formatearMontoInput(estudiante.precioPersonalizado)" @input="actualizarPrecioInput($event, estudiante)" placeholder="Opcional" :disabled="!estudiante.presente">
+                </td>
               </tr>
               <tr v-if="estudiantesFiltrados.length === 0">
-                <td :colspan="tipoClase === 'GRUPAL' ? 3 : 2" class="text-center text-muted py-5 bg-light rounded">
+                <td :colspan="tipoClase === 'GRUPAL' ? 4 : 3" class="text-center text-muted py-5 bg-light rounded">
                   No hay estudiantes registrados en este nivel.
                 </td>
               </tr>
@@ -91,9 +95,23 @@ const estudiantesFiltrados = computed(() => {
   return students.value.filter(s => s.nivel === nivelClase.value); // Filtra por nivel
 });
 
+const formatearMontoInput = (valor) => {
+  if (valor === null || valor === undefined || valor === '') return '';
+  const soloDigitos = String(valor).replace(/\D/g, '');
+  if (!soloDigitos) return '';
+  return Number(soloDigitos).toLocaleString('es-CO');
+};
+
+const actualizarPrecioInput = (event, estudiante) => {
+  // Limpieza segura: solo aplica replace si es string (event.target.value siempre lo es)
+  const raw = (event.target.value || '').replace(/\D/g, '');
+  estudiante.precioPersonalizado = raw ? Number(raw) : null;
+};
+
 const cargarEstudiantes = async () => {
   try {
     const response = await axios.get('/api/finanzas/padres');
+    if (!response?.data) return;
     const allStudents = [];
     
     response.data.forEach(padre => {
@@ -105,7 +123,8 @@ const cargarEstudiantes = async () => {
               // Usamos el nivel del backend o "INICIACIÓN" por defecto
               nivel: hijo.nivel || 'INICIACIÓN', 
               presente: false,
-              esMediaClase: false  
+              esMediaClase: false,
+              precioPersonalizado: null
             });
           }
         });
@@ -127,21 +146,31 @@ const registrarAsistencias = async () => {
   const nivelAEnviar = tipoClase.value === 'GRUPAL' ? nivelClase.value : null;
 
   try {
-    await Promise.all(presentes.map(est => 
-      axios.post('/api/finanzas/asistencia', null, {
-        params: {
-          studentId: est.id,
-          tipoClase: tipoClase.value,
-          esMediaClase: tipoClase.value === 'GRUPAL' ? est.esMediaClase : false,
-          nivel: nivelAEnviar,
-          fecha: fechaAsistencia.value
+    await Promise.all(presentes.map(est => {
+      const params = {
+        studentId: est.id,
+        tipoClase: tipoClase.value,
+        esMediaClase: tipoClase.value === 'GRUPAL' ? est.esMediaClase : false,
+        nivel: nivelAEnviar,
+        fecha: fechaAsistencia.value
+      };
+      // Limpieza defensiva: Number() maneja strings y números; isNaN filtra vacíos/inválidos
+      let precioLimpio = null;
+      if (est.precioPersonalizado != null && est.precioPersonalizado !== '') {
+        const num = Number(est.precioPersonalizado);
+        if (!isNaN(num) && num >= 0) {
+          precioLimpio = num;
         }
-      })
-    ));
+      }
+      if (precioLimpio !== null) {
+        params.precioPersonalizado = precioLimpio;
+      }
+      return axios.post('/api/finanzas/asistencia', null, { params });
+    }));
 
     alert("✅ Asistencias registradas con éxito.");
     
-    students.value.forEach(s => { s.presente = false; s.esMediaClase = false; });
+    students.value.forEach(s => { s.presente = false; s.esMediaClase = false; s.precioPersonalizado = null; });
     fechaAsistencia.value = '';
   } catch (error) {
     console.error(error);

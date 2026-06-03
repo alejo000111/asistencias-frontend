@@ -32,6 +32,11 @@ const router = createRouter({
       path: '/historial-asistencias',
       name: 'historial-asistencias',
       component: HistorialAsistenciasView
+    },
+    {
+      path: '/portal/:token',
+      name: 'portal-padre',
+      component: () => import('../views/PortalPadreView.vue')
     }
   ],
 })

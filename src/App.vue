@@ -1,5 +1,5 @@
 <template>
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <nav v-if="!$route.path.startsWith('/portal')" class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
       <span class="navbar-brand mb-0 h1 fw-bold text-warning" style="letter-spacing: 1px;">Programa Asistencias</span>
       <div class="navbar-nav">

@@ -1,8 +1,12 @@
 <template>
   <div class="card shadow-sm" :class="[padre.estado === 'INACTIVO' ? 'border-secondary bg-light' : (padre.deudaTotal > 0 ? 'border-danger' : 'border-success'), 'tarjeta-cliente']">
     <div class="card-header text-white d-flex justify-content-between align-items-center" :class="padre.estado === 'INACTIVO' ? 'bg-secondary' : 'bg-dark'">
-      <h5 class="mb-0">{{ padre.nombreCompleto }}</h5>
-      <div>
+      <h5 class="mb-0">{{ padre.nombreCompleto }}
+        <button @click="copiarLink" class="btn btn-sm btn-outline-light ms-2 py-0 px-1" style="font-size: 0.75rem; opacity: 0.7;" title="Copiar enlace del portal de padres">
+          🔗 Copiar Link
+        </button>
+      </h5>
+      <div class="d-flex align-items-center gap-1">
         <span v-if="padre.deudaTotal > 0" class="badge bg-danger fs-6 me-1 shadow-sm">Debe: ${{ formatearDinero(padre.deudaTotal) }}</span>
         <span v-if="padre.saldoAbono > 0" class="badge bg-success fs-6 shadow-sm">Abono: ${{ formatearDinero(padre.saldoAbono) }}</span>
       </div>
@@ -20,7 +24,7 @@
                     
                     <span class="badge ms-1 shadow-sm fw-bold" 
                           :style="hijo.nivel === 'AVANZADO' ? 'background-color: #f97316; color: white;' : 'background-color: #10b981; color: white;'">
-                      {{ hijo.nivel || 'INICIACIÓN' }}
+                      {{ hijo.nivel === 'AVANZADO' ? '🔥 Avanzado' : '🌱 Iniciación' }}
                     </span>
                 </span>
             </li>
@@ -95,26 +99,23 @@
           <h6 class="text fw-bold border-bottom pb-1 mb-2">Últimos 10 Movimientos</h6>
           <div v-if="cargandoHistorial" class="text-center text-muted small py-2">Cargando...</div>
           <ul v-else class="list-group list-group-flush small">
-            <li v-for="log in historialPadre" :key="log.id" class="list-group-item bg-transparent px-0 d-flex justify-content-between align-items-center border-bottom border-light">
+            <li v-for="log in historialFiltrado" :key="log.id" class="list-group-item bg-transparent px-0 d-flex justify-content-between align-items-center border-bottom border-light">
               <div>
                 <strong class="text-dark">{{ formatearFecha(log.fecha) }}</strong><br>
                 <span class="text-muted" style="font-size: 0.85rem;">
-                  {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '💰 Abono (' + (log.metodoPago === 'TRANSFERENCIA' ? 'Transf.' : 'Efectivo') + ')' : '🔄 Descuento Automático' }}
+                  💰 Abono ({{ log.metodoPago === 'TRANSFERENCIA' ? 'Transf.' : 'Efectivo' }})
                 </span>
               </div>
               <div class="d-flex align-items-center gap-2">
-                <span :class="log.tipoMovimiento === 'INGRESO_ABONO' ? 'text-success fw-bold' : 'text-primary fw-bold'">
-                  {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '+' : '' }}${{ formatearDinero(log.monto) }}
-                </span>
+                <span class="text-success fw-bold">+${{ formatearDinero(log.monto) }}</span>
                 <button
-                  v-if="log.tipoMovimiento === 'INGRESO_ABONO'"
                   @click="eliminarAbono(log)"
                   class="btn btn-sm text-danger p-0 border-0"
                   title="Eliminar este abono"
                 >🗑️</button>
               </div>
             </li>
-            <li v-if="historialPadre.length === 0" class="list-group-item bg-transparent text-muted text-center px-0">
+            <li v-if="historialFiltrado.length === 0" class="list-group-item bg-transparent text-muted text-center px-0">
               No hay movimientos registrados.
             </li>
           </ul>
@@ -160,8 +161,8 @@
           </div>
 
           <div class="d-flex gap-2 mt-4 pt-2 border-top">
-            <button @click="cancelarEdicion" class="btn btn-sm text-white w-50 fw-bold shadow-sm" style="background-color: #ef4444; border: none;">✖ Cancelar</button>
-            <button @click="guardarEdicion" class="btn btn-sm text-white w-50 fw-bold shadow-sm" style="background-color: #10b981; border: none;">💾 Guardar</button>
+            <button @click="cancelarEdicion" class="btn btn-sm btn-outline-danger w-50 fw-bold shadow-sm">✖ Cancelar</button>
+            <button @click="guardarEdicion" class="btn btn-sm btn-success w-50 fw-bold shadow-sm">💾 Guardar</button>
           </div>
         </div>
         
@@ -171,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, watch, defineProps, defineEmits } from 'vue';
+import { ref, computed, watch, defineProps, defineEmits } from 'vue';
 import axios from 'axios';
 
 const props = defineProps(['padre', 'activeFormType']);
@@ -179,6 +180,11 @@ const emit = defineEmits(['toggleCardForm', 'clienteActualizado', 'recargar']);
 
 const historialPadre = ref([]);
 const cargandoHistorial = ref(false);
+
+const historialFiltrado = computed(() => {
+  // Excluye registros de descuento automático (USO_ABONO_CLASE), solo muestra abonos reales
+  return historialPadre.value.filter(log => log.tipoMovimiento === 'INGRESO_ABONO');
+});
 const mostrarDeudas = ref(false);
 const listaDeudas = ref([]);
 
@@ -374,15 +380,33 @@ const eliminarDeportista = async (idHijo, nombreHijo) => {
   }
 };
 
+const copiarLink = async () => {
+  const url = window.location.origin + '/portal/' + props.padre.secretToken;
+  try {
+    await navigator.clipboard.writeText(url);
+    alert('✅ Enlace del portal copiado al portapapeles');
+  } catch {
+    // Fallback para navegadores sin acceso al clipboard
+    const textarea = document.createElement('textarea');
+    textarea.value = url;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('✅ Enlace del portal copiado al portapapeles');
+  }
+};
+
 const eliminarPadre = async () => {
   if (!confirm(`🚨 ¡ADVERTENCIA! ¿Estás seguro de eliminar a ${props.padre.nombreCompleto} y TODOS sus deportistas?`)) return;
   
   try {
-    await axios.delete(`/api/registro/padre/${props.padre.id}`);
-    alert("✅ Familia eliminada correctamente.");
-    emit('clienteActualizado'); 
-  } catch (error) {
-    alert("❌ No se pudo eliminar al padre. Asegúrate de borrar primero su historial financiero o de asistencias.");
+    const res = await axios.delete(`/api/registro/padre/${props.padre.id}`);
+    alert(res.data);
+    emit('toggleCardForm', { clientId: props.padre.id, formType: null });
+    emit('recargar');
+  } catch (e) {
+    alert("❌ " + (e.response?.data || e.message));
   }
 };
 </script>

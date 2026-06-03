@@ -35,6 +35,7 @@
                     <div>
                       • {{ alumno.nombre }}
                       <span v-if="alumno.esMedia" class="text-dark fw-bold ms-1" style="font-size: 0.70rem;">(Media Clase)</span>
+                      <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearMonto(alumno.precioCobrado) }})</span>
                     </div>
                     <button @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
                   </li>
@@ -48,6 +49,7 @@
                     <div>
                       • {{ alumno.nombre }}
                       <span v-if="alumno.esMedia" class="text-dark fw-bold ms-1" style="font-size: 0.70rem;">(Media Clase)</span>
+                      <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearMonto(alumno.precioCobrado) }})</span>
                     </div>
                     <button @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
                   </li>
@@ -129,22 +131,29 @@ const cargarAsistencias = async () => {
         };
       }
       
+      const PRECIO_GRUPAL = 40000;
+      const PRECIO_MEDIA_GRUPAL = 30000;
+      const PRECIO_PERSONALIZADA = 50000;
+      const precio = Number(a.precioCobrado);
+      const esPrecioEspecial = ![PRECIO_GRUPAL, PRECIO_MEDIA_GRUPAL, PRECIO_PERSONALIZADA].includes(precio);
+
       if (a.student) {
-        // Si el estudiante existe, usamos su nombre normal
         grupos[key].estudiantes.push({
           idAsistencia: a.id,
           nombre: a.student.nombreCompleto,
           pagada: a.clasePaga,
-          esMedia: a.esMediaClase === true
+          esMedia: a.esMediaClase === true,
+          precioCobrado: precio,
+          esPrecioEspecial: esPrecioEspecial
         });
       } else {
-        // SI EL ESTUDIANTE FUE ELIMINADO (a.student es null)
-        // Usamos el nombre histórico que guardamos en la base de datos
         grupos[key].estudiantes.push({
           idAsistencia: a.id,
           nombre: (a.nombreEstudianteHistorico || "Estudiante") + " (Retirado)",
           pagada: a.clasePaga,
-          esMedia: a.esMediaClase === true
+          esMedia: a.esMediaClase === true,
+          precioCobrado: precio,
+          esPrecioEspecial: esPrecioEspecial
         });
       }
     });
@@ -171,6 +180,11 @@ const cargarAsistencias = async () => {
       paginaActual.value = totalPaginas.value;
     }
   } catch (error) { console.error("Error:", error); }
+};
+
+const formatearMonto = (valor) => {
+  if (valor === null || valor === undefined) return '0';
+  return Number(valor).toLocaleString('es-CO');
 };
 
 const formatearFechaDisplay = (fechaDato) => {

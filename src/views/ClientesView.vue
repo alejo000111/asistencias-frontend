@@ -62,7 +62,7 @@
 
     <div v-if="pestanaActual === 'INACTIVOS'">
       <div class="alert alert-secondary">
-        Aquí aparecen los padres que han sido marcados como INACTIVOS. Puedes editarlos para reactivarlos en cualquier momento.
+        Aqu&#237; aparecen los padres marcados como INACTIVOS. Puedes editarlos para reactivarlos.
       </div>
       <div class="row mt-3">
         <div class="col-md-6 mb-4" v-for="padre in padresInactivos" :key="padre.id">
@@ -131,6 +131,7 @@ const cargarPadres = async () => {
   try {
     const response = await axios.get('/api/finanzas/padres');
     
+    if (!response?.data) return;
     padres.value = response.data.map(padre => {
       let deuda = 0;
       if (padre.students) {
