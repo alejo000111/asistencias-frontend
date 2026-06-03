@@ -37,7 +37,7 @@
                       <span v-if="alumno.esMedia" class="text-dark fw-bold ms-1" style="font-size: 0.70rem;">(Media Clase)</span>
                       <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearMonto(alumno.precioCobrado) }})</span>
                     </div>
-                    <button @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
+                    <button v-if="esAdmin" @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
                   </li>
                 </ul>
               </div>
@@ -51,12 +51,12 @@
                       <span v-if="alumno.esMedia" class="text-dark fw-bold ms-1" style="font-size: 0.70rem;">(Media Clase)</span>
                       <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearMonto(alumno.precioCobrado) }})</span>
                     </div>
-                    <button @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
+                    <button v-if="esAdmin" @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
                   </li>
                 </ul>
               </div>
 
-              <div class="mt-3 text-center border-top pt-2">
+              <div v-if="esAdmin" class="mt-3 text-center border-top pt-2">
                 <button @click="eliminarListaCompleta(grupo)" class="btn btn-outline-danger btn-sm w-100 fw-bold">
                   🗑️ Eliminar Lista Completa
                 </button>
@@ -86,6 +86,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
+
+const esAdmin = localStorage.getItem('authRole') === 'ADMIN';
 
 const asistenciasAgrupadas = ref([]);
 

@@ -108,7 +108,7 @@
               </div>
               <div class="d-flex align-items-center gap-2">
                 <span class="text-success fw-bold">+${{ formatearDinero(log.monto) }}</span>
-                <button
+                <button v-if="esAdmin"
                   @click="eliminarAbono(log)"
                   class="btn btn-sm text-danger p-0 border-0"
                   title="Eliminar este abono"
@@ -124,7 +124,7 @@
         <div v-if="activeFormType === 'edit'" class="bg-white p-3 shadow-sm panel-edicion">
           <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
             <h6 class="text-secondary fw-bold mb-0">Editar Padre</h6>
-            <button @click="eliminarPadre" class="btn btn-sm btn-outline-danger py-0 px-2" title="Eliminar Padre y toda su familia">
+            <button v-if="esAdmin" @click="eliminarPadre" class="btn btn-sm btn-outline-danger py-0 px-2" title="Eliminar Padre y toda su familia">
               🗑️ Eliminar Familia
             </button>
           </div>
@@ -143,7 +143,7 @@
             
             <div class="d-flex gap-2 mb-1">
               <input type="text" v-model="hijo.editNombre" class="form-control form-control-sm" placeholder="Nombre del Deportista">
-              <button @click="eliminarDeportista(hijo.id, hijo.editNombre)" class="btn btn-sm btn-danger px-2 py-0 shadow-sm" title="Eliminar Deportista">
+              <button v-if="esAdmin" @click="eliminarDeportista(hijo.id, hijo.editNombre)" class="btn btn-sm btn-danger px-2 py-0 shadow-sm" title="Eliminar Deportista">
                 🗑️
               </button>
             </div>
@@ -174,6 +174,8 @@
 <script setup>
 import { ref, computed, watch, defineProps, defineEmits } from 'vue';
 import axios from 'axios';
+
+const esAdmin = localStorage.getItem('authRole') === 'ADMIN';
 
 const props = defineProps(['padre', 'activeFormType']);
 const emit = defineEmits(['toggleCardForm', 'clienteActualizado', 'recargar']); 
