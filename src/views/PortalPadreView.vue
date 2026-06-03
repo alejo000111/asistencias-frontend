@@ -83,6 +83,42 @@
         </div>
       </div>
 
+      <!-- Últimas Clases Asistidas -->
+      <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">&#127942; Últimas Clases Asistidas</h5>
+        </div>
+        <div class="card-body p-0">
+          <div v-if="!ultimasClases || ultimasClases.length === 0" class="text-center py-4 text-muted">
+            No hay registro de clases recientes.
+          </div>
+          <div v-else>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Deportista</th>
+                    <th>Fecha</th>
+                    <th>Nivel</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="clase in ultimasClases" :key="clase.fecha + (clase.nombreEstudiante || '')">
+                    <td>{{ clase.nombreEstudiante || '-' }}</td>
+                    <td>{{ formatearFecha(clase.fecha) }}</td>
+                    <td>
+                      <span class="badge rounded-pill px-2 py-1" :style="'font-size: 0.70rem;' + (clase.nivel === 'AVANZADO' ? 'background-color: #f97316; color: white;' : 'background-color: #10b981; color: white;')">
+                        {{ descripcionNivel(clase.nivel) }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Deudas pendientes -->
       <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-white">
@@ -187,6 +223,7 @@ const estudiantes = ref([])
 const financialLogs = ref([])
 const deudas = ref([])
 const deudaTotal = ref(0)
+const ultimasClases = ref([])
 
 const logsLimitados = computed(() => {
   return financialLogs.value
@@ -251,6 +288,7 @@ onMounted(async () => {
     financialLogs.value = data.financialLogs || []
     deudas.value = data.deudas || []
     deudaTotal.value = data.deudaTotal || 0
+    ultimasClases.value = data.ultimasClases || []
   } catch (e) {
     if (e.response && e.response.status === 404) {
       error.value = 'Enlace no encontrado o inv&aacute;lido. Verifica que el enlace sea correcto.'
