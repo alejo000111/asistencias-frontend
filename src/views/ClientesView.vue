@@ -17,6 +17,21 @@
       </li>
     </ul>
 
+    <!-- Barra de búsqueda en vivo -->
+    <div class="mb-3">
+      <input
+        type="text"
+        v-model="textoBusqueda"
+        class="form-control shadow-sm border-secondary"
+        placeholder="🔍 Buscar por nombre de padre o deportista..."
+      />
+    </div>
+
+    <!-- Mensaje cuando la búsqueda no encuentra resultados -->
+    <div v-if="textoBusqueda.trim() && padresFiltrados.length === 0" class="alert alert-info text-center">
+      No se encontraron resultados para "<strong>{{ textoBusqueda }}</strong>"
+    </div>
+
     <div v-if="pestanaActual === 'ACTIVOS'">
       <h5 class="text-danger border-bottom pb-2 mt-2">🔴 Tienen saldos pendientes</h5>
       <div class="row mt-3">
@@ -72,6 +87,7 @@ import TarjetaCliente from '../components/TarjetaCliente.vue';
 
 const padres = ref([]);
 const pestanaActual = ref('ACTIVOS');
+const textoBusqueda = ref('');
 
 const currentOpenClientId = ref(null);
 const currentOpenFormType = ref(null); // 'abono', 'historial', o 'edit'
@@ -89,9 +105,24 @@ const onToggleCardForm = ({ clientId, formType }) => {
   }
 };
 
-// Filtros Computados Mágicos (se mantienen igual)
-const padresActivos = computed(() => padres.value.filter(p => p.estado === 'ACTIVO' || !p.estado));
-const padresInactivos = computed(() => padres.value.filter(p => p.estado === 'INACTIVO'));
+// Filtro de búsqueda en vivo: busca por nombre de padre o de deportista
+const padresFiltrados = computed(() => {
+  const busqueda = textoBusqueda.value.toLowerCase().trim();
+  if (!busqueda) return padres.value;
+  return padres.value.filter(padre => {
+    if (padre.nombreCompleto.toLowerCase().includes(busqueda)) return true;
+    if (padre.students) {
+      return padre.students.some(hijo =>
+        hijo.nombreCompleto.toLowerCase().includes(busqueda)
+      );
+    }
+    return false;
+  });
+});
+
+// Filtros Computados (ahora sobre la lista filtrada por búsqueda)
+const padresActivos = computed(() => padresFiltrados.value.filter(p => p.estado === 'ACTIVO' || !p.estado));
+const padresInactivos = computed(() => padresFiltrados.value.filter(p => p.estado === 'INACTIVO'));
 
 const padresActivosConDeuda = computed(() => padresActivos.value.filter(p => p.deudaTotal > 0));
 const padresActivosAlDia = computed(() => padresActivos.value.filter(p => p.deudaTotal === 0));

@@ -175,24 +175,10 @@ const cargarAsistencias = async () => {
 
 const formatearFechaDisplay = (fechaDato) => {
   if (!fechaDato) return '';
-  let yyyy, mm, dd;
-  
   if (Array.isArray(fechaDato)) {
-    yyyy = fechaDato[0]; 
-    mm = fechaDato[1]; 
-    dd = fechaDato[2];
-  } else {
-    const f = new Date(fechaDato);
-    yyyy = f.getFullYear(); 
-    mm = f.getMonth() + 1; 
-    dd = f.getDate();
+    return new Date(Date.UTC(fechaDato[0], fechaDato[1] - 1, fechaDato[2])).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   }
-
-  // Lista de meses para mostrar en texto
-  const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const mesTexto = meses[mm - 1]; // mm - 1 porque los arrays empiezan en 0
-  
-  return `${String(dd).padStart(2, '0')} ${mesTexto} ${yyyy}`;
+  return new Date(fechaDato).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 };
 
 const alumnosPorPagar = (estudiantes) => estudiantes.filter(e => !e.pagada);

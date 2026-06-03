@@ -64,7 +64,14 @@
         
         <div v-if="activeFormType === 'abono'" class="p-3 bg-white shadow-sm">
           <label class="form-label text-sm mb-1 fw-bold text-dark">Monto a abonar:</label>
-          <input type="number" v-model="padre.nuevoAbono" class="form-control form-control-sm mb-2" placeholder="Ej: 50000">
+          <input
+            type="text"
+            inputmode="numeric"
+            :value="formatearMontoInput(padre.nuevoAbono)"
+            @input="actualizarMontoInput($event, padre)"
+            class="form-control form-control-sm mb-2"
+            placeholder="Ej: 50.000"
+          />
           
           <div class="row">
             <div class="col-6">
@@ -79,7 +86,9 @@
               <input type="date" v-model="padre.fechaAbono" class="form-control form-control-sm mb-3">
             </div>
           </div>
-          <button @click="enviarAbono" class="btn btn-sm btn-success w-100 fw-bold shadow-sm">Confirmar Pago</button>
+          <button @click="enviarAbono" :disabled="procesandoPago" class="btn btn-sm btn-success w-100 fw-bold shadow-sm">
+            {{ procesandoPago ? '⏳ Procesando...' : 'Confirmar Pago' }}
+          </button>
         </div>
 
         <div v-if="activeFormType === 'historial'" class="p-3 bg-light shadow-sm">
@@ -93,9 +102,17 @@
                   {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '💰 Abono (' + (log.metodoPago === 'TRANSFERENCIA' ? 'Transf.' : 'Efectivo') + ')' : '🔄 Descuento Automático' }}
                 </span>
               </div>
-              <span :class="log.tipoMovimiento === 'INGRESO_ABONO' ? 'text-success fw-bold' : 'text-primary fw-bold'">
-                {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '+' : '' }}${{ formatearDinero(log.monto) }}
-              </span>
+              <div class="d-flex align-items-center gap-2">
+                <span :class="log.tipoMovimiento === 'INGRESO_ABONO' ? 'text-success fw-bold' : 'text-primary fw-bold'">
+                  {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '+' : '' }}${{ formatearDinero(log.monto) }}
+                </span>
+                <button
+                  v-if="log.tipoMovimiento === 'INGRESO_ABONO'"
+                  @click="eliminarAbono(log)"
+                  class="btn btn-sm text-danger p-0 border-0"
+                  title="Eliminar este abono"
+                >🗑️</button>
+              </div>
             </li>
             <li v-if="historialPadre.length === 0" class="list-group-item bg-transparent text-muted text-center px-0">
               No hay movimientos registrados.
@@ -182,22 +199,29 @@ const toggleDeudas = async () => {
 const formatearFecha = (fechaDato) => {
   if (!fechaDato) return '';
   if (Array.isArray(fechaDato)) {
-    const dia = String(fechaDato[2]).padStart(2, '0');
-    const mes = String(fechaDato[1]).padStart(2, '0');
-    const anio = fechaDato[0];
-    return `${dia}/${mes}/${anio}`;
+    return new Date(Date.UTC(fechaDato[0], fechaDato[1] - 1, fechaDato[2])).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   }
-  const fecha = new Date(fechaDato);
-  const dia = String(fecha.getDate()).padStart(2, '0');
-  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-  const anio = fecha.getFullYear();
-  return `${dia}/${mes}/${anio}`;
+  return new Date(fechaDato).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 };
 
 const formatearDinero = (monto) => {
   if (!monto && monto !== 0) return '0';
   // 'es-CO' le dice a JavaScript que use el formato de Colombia (puntos para miles)
   return Number(monto).toLocaleString('es-CO');
+};
+
+// Formatea el valor del input con separadores de miles mientras el usuario escribe
+const formatearMontoInput = (valor) => {
+  if (!valor && valor !== 0) return '';
+  const soloDigitos = String(valor).replace(/\D/g, '');
+  if (!soloDigitos) return '';
+  return Number(soloDigitos).toLocaleString('es-CO');
+};
+
+// Parsea el texto escrito, extrae solo dígitos y guarda como número
+const actualizarMontoInput = (event, padre) => {
+  const raw = event.target.value.replace(/\D/g, '');
+  padre.nuevoAbono = raw ? Number(raw) : '';
 };
 
 watch(() => props.activeFormType, (newFormType) => {
@@ -288,8 +312,27 @@ const guardarEdicion = async () => {
   }
 };
 
+const procesandoPago = ref(false);
+
+const eliminarAbono = async (log) => {
+  if (!confirm(`¿Eliminar este abono de $${formatearDinero(log.monto)}? Se revertirá del saldo del cliente.`)) return;
+  try {
+    await axios.delete(`/api/finanzas/abono/${log.id}`);
+    alert('✅ Abono eliminado correctamente.');
+    emit('recargar');
+    // Recargar el historial si está abierto
+    if (props.activeFormType === 'historial') {
+      cargarHistorialCompleto();
+    }
+  } catch (error) {
+    console.error(error);
+    alert('❌ Error al eliminar el abono.');
+  }
+};
+
 const enviarAbono = async () => {
   if (!props.padre.nuevoAbono || props.padre.nuevoAbono <= 0) return alert("⚠️ Monto inválido.");
+  procesandoPago.value = true;
   try {
     await axios.post('/api/finanzas/abono', null, {
       params: { 
@@ -300,10 +343,13 @@ const enviarAbono = async () => {
       }
     });
     alert(`✅ Abono registrado.`);
-    emit('recargar'); 
+    emit('recargar');
+    emit('toggleCardForm', { clientId: props.padre.id, formType: null });
   } catch (error) { 
     console.error(error);
     alert("❌ Error al registrar el abono."); 
+  } finally {
+    procesandoPago.value = false;
   }
 };
 

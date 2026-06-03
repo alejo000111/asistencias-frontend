@@ -13,7 +13,7 @@
             <input type="text" v-model="formPadre.nombre" class="form-control" placeholder="Ej: Carlos">
           </div>
           <div class="mb-3">
-            <label class="form-label">Apellido(s)</label>
+            <label class="form-label">Apellido</label>
             <input type="text" v-model="formPadre.apellido" class="form-control" placeholder="Ej: Perez">
           </div>
           <div class="mb-3">
@@ -31,14 +31,33 @@
           <h5 class="mb-0">🛼 Registrar Deportista</h5>
         </div>
         <div class="card-body">
-          <div class="mb-3">
-            <label class="form-label text-primary fw-bold">Seleccionar Padre</label>
-            <select v-model="formDeportista.parentId" class="form-select border-primary">
-              <option value="" disabled>Seleccione un padre...</option>
-              <option v-for="padre in padres" :key="padre.id" :value="padre.id">
+          <div class="mb-3" style="position: relative;">
+            <label class="form-label text-primary fw-bold">Buscar Padre / Acudiente</label>
+            <input
+              type="text"
+              v-model="textoBusquedaPadre"
+              class="form-control border-primary shadow-sm"
+              placeholder="Escribe el nombre del padre..."
+              @focus="abrirDropdown"
+              @blur="setTimeout(() => mostrarDropdown = false, 200)"
+            />
+            <ul
+              v-if="mostrarDropdown && padresFiltrados.length > 0"
+              class="list-group position-absolute w-100 shadow-sm"
+              style="z-index: 1000; max-height: 200px; overflow-y: auto; cursor: pointer;"
+            >
+              <li
+                v-for="padre in padresFiltrados"
+                :key="padre.id"
+                class="list-group-item list-group-item-action py-2"
+                @mousedown.prevent="seleccionarPadre(padre)"
+              >
                 {{ padre.nombreCompleto }}
-              </option>
-            </select>
+              </li>
+            </ul>
+            <div v-if="padreSeleccionado" class="mt-1">
+              <span class="badge bg-success fs-6 shadow-sm">✓ {{ padreSeleccionado.nombreCompleto }}</span>
+            </div>
           </div>
           <div class="row">
             <div class="col-6 mb-3">
@@ -46,7 +65,7 @@
               <input type="text" v-model="formDeportista.nombre" class="form-control">
             </div>
             <div class="col-6 mb-3">
-              <label class="form-label">Apellido(s)</label>
+              <label class="form-label">Apellido</label>
               <input type="text" v-model="formDeportista.apellido" class="form-control">
             </div>
           </div>
@@ -77,12 +96,55 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 
 const padres = ref([]);
 const formPadre = ref({ nombre: '', apellido: '', telefono: '' });
 const formDeportista = ref({ parentId: '', nombre: '', apellido: '', edad: '', fechaNacimiento: '', nivel: 'INICIACIÓN' });
+
+// --- BÚSQUEDA DE PADRE CON DROPDOWN ---
+const textoBusquedaPadre = ref('');
+const padreSeleccionado = ref(null);
+const mostrarDropdown = ref(false);
+
+const padresFiltrados = computed(() => {
+  const busqueda = textoBusquedaPadre.value.toLowerCase().trim();
+  if (!busqueda) return [];
+  return padres.value.filter(p =>
+    p.nombreCompleto.toLowerCase().includes(busqueda)
+  );
+});
+
+const seleccionando = ref(false);
+
+const seleccionarPadre = (padre) => {
+  seleccionando.value = true;
+  padreSeleccionado.value = padre;
+  textoBusquedaPadre.value = padre.nombreCompleto;
+  formDeportista.value.parentId = padre.id;
+  mostrarDropdown.value = false;
+};
+
+const abrirDropdown = () => {
+  if (textoBusquedaPadre.value.trim().length > 0) {
+    mostrarDropdown.value = true;
+  }
+};
+
+watch(textoBusquedaPadre, (nuevoValor) => {
+  if (seleccionando.value) {
+    seleccionando.value = false;
+    return;
+  }
+  if (!nuevoValor || nuevoValor.trim() === '') {
+    padreSeleccionado.value = null;
+    formDeportista.value.parentId = '';
+    mostrarDropdown.value = false;
+  } else {
+    mostrarDropdown.value = true;
+  }
+});
 
 const calcularEdad = () => {
   const fechaNac = formDeportista.value.fechaNacimiento;
@@ -129,8 +191,11 @@ const enviarDeportista = async () => {
   try {
     await axios.post('/api/registro/deportista', null, { params: formDeportista.value });
     alert("✅ Deportista registrado con éxito");
-    // Al limpiar el form, volvemos a poner 'INICIACIÓN' por defecto para que no quede en blanco
+    // Limpia el formulario Y la búsqueda del padre
     formDeportista.value = { parentId: '', nombre: '', apellido: '', edad: '', fechaNacimiento: '', nivel: 'INICIACIÓN' };
+    textoBusquedaPadre.value = '';
+    padreSeleccionado.value = null;
+    mostrarDropdown.value = false;
   } catch (error) { alert("❌ Error"); }
 };
 

@@ -142,6 +142,7 @@ const registrarAsistencias = async () => {
     alert("✅ Asistencias registradas con éxito.");
     
     students.value.forEach(s => { s.presente = false; s.esMediaClase = false; });
+    fechaAsistencia.value = '';
   } catch (error) {
     console.error(error);
     alert("❌ Hubo un error al registrar las asistencias.");
