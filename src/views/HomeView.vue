@@ -31,17 +31,17 @@
               <input type="radio" class="btn-check" id="grupal" value="GRUPAL" v-model="tipoClase">
               <label class="btn px-4 fw-bold transition-all border" for="grupal"
                      :style="{
-                       backgroundColor: tipoClase === 'GRUPAL' ? '#2563eb' : '#ffffff',
-                       color: tipoClase === 'GRUPAL' ? '#ffffff' : '#2563eb',
-                       borderColor: '#2563eb'
+                       backgroundColor: tipoClase === 'GRUPAL' ? 'var(--orange-500)' : '#ffffff',
+                       color: tipoClase === 'GRUPAL' ? '#ffffff' : 'var(--gray-700)',
+                       borderColor: tipoClase === 'GRUPAL' ? 'var(--orange-500)' : 'var(--border-primary)'
                      }">👥 Grupal</label>
 
               <input type="radio" class="btn-check" id="personalizada" value="PERSONALIZADA" v-model="tipoClase">
               <label class="btn px-4 fw-bold transition-all border" for="personalizada"
                      :style="{
-                       backgroundColor: tipoClase === 'PERSONALIZADA' ? '#4f46e5' : '#ffffff',
-                       color: tipoClase === 'PERSONALIZADA' ? '#ffffff' : '#4f46e5',
-                       borderColor: '#4f46e5'
+                       backgroundColor: tipoClase === 'PERSONALIZADA' ? 'var(--orange-500)' : '#ffffff',
+                       color: tipoClase === 'PERSONALIZADA' ? '#ffffff' : 'var(--gray-700)',
+                       borderColor: tipoClase === 'PERSONALIZADA' ? 'var(--orange-500)' : 'var(--border-primary)'
                      }">👤 Personalizada</label>
             </div>
           </div>
@@ -67,27 +67,28 @@
           </div>
         </div>
 
-        <div class="table-responsive mt-3">
+        <!-- Tabla (desktop) / Cards (mobile) -->
+        <div class="table-responsive mt-3 d-none d-md-block">
           <table class="table table-hover align-middle border">
-            <thead class="table-light border-bottom border-dark">
+            <thead class="table-light border-bottom">
               <tr>
                 <th class="text-center" style="width: 10%;">Presente</th>
-                <th :style="{ width: tipoClase === 'GRUPAL' ? '60%' : '70%' }">Estudiante</th>
+                <th>Estudiante</th>
                 <th style="width: 150px;">Precio Especial ($)</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="estudiante in estudiantesFiltrados" :key="estudiante.id">
                 <td class="text-center">
-                  <input class="form-check-input fs-4 border-secondary shadow-sm" type="checkbox" v-model="estudiante.presente">
+                  <input class="form-check-input fs-4" type="checkbox" v-model="estudiante.presente">
                 </td>
-                <td class="fw-bold text-dark">{{ estudiante.nombreCompleto }}</td>
+                <td class="fw-bold">{{ estudiante.nombreCompleto }}</td>
                 <td>
                   <input type="text" class="form-control form-control-sm" :value="formatearMontoInput(estudiante.precioPersonalizado)" @input="actualizarPrecioInput($event, estudiante)" placeholder="Opcional" :disabled="!estudiante.presente">
                 </td>
               </tr>
               <tr v-if="estudiantesFiltrados.length === 0">
-                <td colspan="3" class="text-center text-muted py-5 bg-light rounded">
+                <td colspan="3" class="text-center text-muted py-5">
                   No hay estudiantes registrados en este nivel.
                 </td>
               </tr>
@@ -95,13 +96,39 @@
           </table>
         </div>
 
-        <div class="d-flex justify-content-between align-items-end mt-4 pt-4 border-top">
-          <div class="w-50 me-4">
-            <label class="form-label text-dark fw-bold small mb-1">📅 Fecha de la clase (Opcional):</label>
-            <input type="date" v-model="fechaAsistencia" class="form-control border-secondary shadow-sm">
-            <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">Si lo dejas vacío, se usará la fecha de hoy.</small>
+        <!-- Vista mobile: cards de estudiantes -->
+        <div class="d-md-none mt-3">
+          <div v-for="estudiante in estudiantesFiltrados" :key="estudiante.id"
+               class="home-estudiante-card"
+               :class="{ 'home-estudiante-card--selected': estudiante.presente }"
+               @click="estudiante.presente = !estudiante.presente">
+            <div class="home-estudiante-card__left">
+              <div class="home-estudiante-card__checkbox">
+                <input class="form-check-input fs-5" type="checkbox" v-model="estudiante.presente" @click.stop>
+              </div>
+              <div class="home-estudiante-card__info">
+                <span class="home-estudiante-card__name">{{ estudiante.nombreCompleto }}</span>
+                <input type="text" class="form-control form-control-sm mt-1" 
+                       :value="formatearMontoInput(estudiante.precioPersonalizado)" 
+                       @input.stop="actualizarPrecioInput($event, estudiante)" 
+                       placeholder="Precio opcional" 
+                       :disabled="!estudiante.presente"
+                       @click.stop>
+              </div>
+            </div>
           </div>
-          <button @click="registrarAsistencias" class="btn btn-success border border-2 border-dark px-4 py-2 fw-bold shadow">
+          <div v-if="estudiantesFiltrados.length === 0" class="text-center text-muted py-5">
+            No hay estudiantes registrados en este nivel.
+          </div>
+        </div>
+
+        <div class="home-footer-actions">
+          <div class="home-footer-fecha">
+            <label class="home-footer-label">📅 Fecha (Opcional):</label>
+            <input type="date" v-model="fechaAsistencia" class="form-control">
+            <small class="home-footer-hint">Si lo dejas vacío, se usará la fecha de hoy.</small>
+          </div>
+          <button @click="registrarAsistencias" class="app-btn app-btn--primary app-btn--lg home-footer-btn">
             ✅ Registrar Asistencias
           </button>
         </div>
@@ -260,3 +287,93 @@ onMounted(() => {
   cargarSedes();
 });
 </script>
+
+<style scoped>
+/* Mobile: tarjetas de estudiantes en lugar de tabla */
+.home-estudiante-card {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3);
+  margin-bottom: var(--space-2);
+  background: var(--card-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.home-estudiante-card--selected {
+  border-color: var(--orange-300);
+  background: var(--orange-50);
+}
+
+.home-estudiante-card__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.home-estudiante-card__checkbox {
+  flex-shrink: 0;
+}
+
+.home-estudiante-card__info {
+  flex: 1;
+}
+
+.home-estudiante-card__name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+/* Footer actions responsive */
+.home-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-primary);
+}
+
+.home-footer-fecha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.home-footer-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.home-footer-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.home-footer-btn {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .home-footer-actions {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .home-footer-fecha {
+    width: 50%;
+  }
+
+  .home-footer-btn {
+    width: auto;
+  }
+}
+</style>

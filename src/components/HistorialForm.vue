@@ -5,7 +5,7 @@
     <ul v-else class="list-group list-group-flush small">
       <li v-for="log in historialFiltrado" :key="log.id" class="list-group-item bg-transparent px-0 d-flex justify-content-between align-items-center border-bottom border-light">
         <div><strong class="text-dark">{{ formatearFecha(log.fecha) }}</strong><br><span class="text-muted" style="font-size: 0.85rem;">💰 Abono ({{ log.metodoPago === 'TRANSFERENCIA' ? 'Transf.' : 'Efectivo' }})</span></div>
-        <div class="d-flex align-items-center gap-2"><span class="text-success fw-bold">+${{ formatearDinero(log.monto) }}</span><button v-if="esAdmin" @click="eliminarAbono(log)" class="btn btn-sm text-danger p-0 border-0">🗑️</button></div>
+        <div class="d-flex align-items-center gap-2"><span class="fw-semibold" style="color: var(--text-primary);">+${{ formatearDinero(log.monto) }}</span><button v-if="esAdmin" @click="eliminarAbono(log)" class="app-btn app-btn--ghost app-btn--sm" style="padding: 2px 6px; color: var(--color-danger);">🗑️</button></div>
       </li>
       <li v-if="historialFiltrado.length === 0" class="list-group-item bg-transparent text-muted text-center px-0">No hay movimientos registrados.</li>
     </ul>

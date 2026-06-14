@@ -15,7 +15,7 @@
         <input type="date" v-model="padre.fechaAbono" class="form-control form-control-sm mb-3" />
       </div>
     </div>
-    <button @click="enviarAbono" :disabled="procesandoPago" class="btn btn-sm btn-success w-100 fw-bold shadow-sm">{{ procesandoPago ? '⏳ Procesando...' : 'Confirmar Pago' }}</button>
+    <button @click="enviarAbono" :disabled="procesandoPago" class="app-btn app-btn--primary app-btn--sm" style="width:100%">{{ procesandoPago ? '⏳ Procesando...' : 'Confirmar Pago' }}</button>
   </div>
 </template>
 

@@ -6,26 +6,26 @@
 
     <ul class="nav nav-tabs mb-4">
       <li class="nav-item">
-        <button class="nav-link fw-bold" :class="{ 'active text-primary': pestanaActual === 'ACTIVOS', 'text-muted': pestanaActual !== 'ACTIVOS' }" @click="pestanaActual = 'ACTIVOS'">
-          🟢 Clientes Activos
+        <button class="nav-link fw-bold" :class="{ 'active': pestanaActual === 'ACTIVOS' }" @click="pestanaActual = 'ACTIVOS'">
+          Clientes Activos
         </button>
       </li>
       <li class="nav-item">
-        <button class="nav-link fw-bold" :class="{ 'active text-danger': pestanaActual === 'INACTIVOS', 'text-muted': pestanaActual !== 'INACTIVOS' }" @click="pestanaActual = 'INACTIVOS'">
-          🔴 Clientes Inactivos
+        <button class="nav-link fw-bold" :class="{ 'active': pestanaActual === 'INACTIVOS' }" @click="pestanaActual = 'INACTIVOS'">
+          Clientes Inactivos
         </button>
       </li>
     </ul>
 
     <!-- Barra de búsqueda en vivo + Filtro por sede -->
-    <div class="mb-3 d-flex gap-2">
+    <div class="clientes-filtros">
       <input
         type="text"
         v-model="textoBusqueda"
-        class="form-control shadow-sm border-secondary"
-        placeholder="🔍 Buscar por nombre de padre o deportista..."
+        class="form-control"
+        placeholder="🔍 Buscar por nombre..."
       />
-      <select v-model="filtroSedeId" class="form-select shadow-sm border-secondary w-auto" style="min-width: 180px;">
+      <select v-model="filtroSedeId" class="form-select">
         <option value="">🏢 Todas las sedes</option>
         <option v-for="s in sedes" :key="s.id" :value="s.id">{{ s.nombre }}</option>
       </select>
@@ -37,7 +37,7 @@
     </div>
 
     <div v-if="pestanaActual === 'ACTIVOS'">
-      <h5 class="text-danger border-bottom pb-2 mt-2">🔴 Tienen saldos pendientes</h5>
+      <h5 class="border-bottom pb-2 mt-2" style="color: var(--text-primary);">Tienen saldos pendientes</h5>
       <div class="row mt-3">
         <div class="col-md-6 mb-4" v-for="padre in padresActivosConDeuda" :key="padre.id">
           <TarjetaCliente 
@@ -52,7 +52,7 @@
         <div v-if="padresActivosConDeuda.length === 0" class="text-muted mb-4">Nadie debe dinero. ¡Excelente!</div>
       </div>
 
-      <h5 class="text-success border-bottom pb-2 mt-4">🟢 Al Día / Saldo a Favor</h5>
+      <h5 class="border-bottom pb-2 mt-4" style="color: var(--text-primary);">Al Día / Saldo a Favor</h5>
       <div class="row mt-3">
         <div class="col-md-6 mb-4" v-for="padre in padresActivosAlDia" :key="padre.id">
           <TarjetaCliente 
@@ -69,8 +69,8 @@
     </div>
 
     <div v-if="pestanaActual === 'INACTIVOS'">
-      <div class="alert alert-secondary">
-        Aqu&#237; aparecen los padres marcados como INACTIVOS. Puedes editarlos para reactivarlos.
+      <div class="alert" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-3);">
+        Aquí aparecen los padres marcados como INACTIVOS. Puedes editarlos para reactivarlos.
       </div>
       <div class="row mt-3">
         <div class="col-md-6 mb-4" v-for="padre in padresInactivos" :key="padre.id">
@@ -201,3 +201,41 @@ const cargarPadres = async () => {
 
 onMounted(() => { cargarPadres(); cargarSedes(); });
 </script>
+
+<style scoped>
+.clientes-filtros {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.clientes-filtros .form-control,
+.clientes-filtros .form-select {
+  font-size: 0.875rem;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.clientes-filtros .form-control {
+  flex: 1;
+}
+
+.clientes-filtros .form-select {
+  min-width: 160px;
+  width: auto;
+}
+
+@media (max-width: 768px) {
+  .clientes-filtros {
+    flex-direction: column;
+  }
+
+  .clientes-filtros .form-select {
+    width: 100%;
+    min-width: unset;
+  }
+}
+</style>

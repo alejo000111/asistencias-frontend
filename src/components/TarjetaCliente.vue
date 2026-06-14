@@ -1,48 +1,60 @@
 <template>
-  <div class="card shadow-sm" :class="[padre.estado === 'INACTIVO' ? 'border-secondary bg-light' : (padre.deudaTotal > 0 ? 'border-danger' : 'border-success'), 'tarjeta-cliente']">
-    <div class="card-header text-white d-flex justify-content-between align-items-center" :class="padre.estado === 'INACTIVO' ? 'bg-secondary' : 'bg-dark'">
-      <h5 class="mb-0">{{ padre.nombreCompleto }}
-        <button @click="copiarLink" class="btn btn-sm btn-primary fw-bold shadow-sm ms-2 py-1 px-2" style="font-size: 0.80rem;">🔗 Copiar Link</button>
+  <div class="tarjeta-cliente card-premium" :class="{ 'opacity-50': padre.estado === 'INACTIVO' }">
+    <div class="tarjeta-cliente__header">
+      <h5 class="tarjeta-cliente__title">{{ padre.nombreCompleto }}
+        <button @click="copiarLink" class="app-btn app-btn--ghost app-btn--sm" style="font-size: 0.75rem;">🔗 Copiar Link</button>
       </h5>
-      <div class="d-flex align-items-center gap-1">
-        <span v-if="padre.deudaTotal > 0" class="badge bg-danger fs-6 me-1 shadow-sm">Debe: ${{ formatearDinero(padre.deudaTotal) }}</span>
-        <span v-if="padre.saldoAbono > 0" class="badge bg-success fs-6 shadow-sm">Abono: ${{ formatearDinero(padre.saldoAbono) }}</span>
+      <div class="tarjeta-cliente__badges">
+        <span v-if="padre.deudaTotal > 0" class="badge-premium" style="background: var(--gray-200); color: var(--gray-800); font-weight: 600;">
+          Debe: ${{ formatearDinero(padre.deudaTotal) }}
+        </span>
+        <span v-if="padre.saldoAbono > 0" class="badge-premium" style="background: var(--gray-200); color: var(--gray-800);">
+          Abono: ${{ formatearDinero(padre.saldoAbono) }}
+        </span>
       </div>
     </div>
-    <div class="card-body p-0">
-      <div class="p-3" v-if="activeFormType !== 'edit'">
-        <p class="mb-2 text-dark"><strong>📞 Telefono:</strong> {{ padre.telefono }}</p>
-        <ul class="list-group list-group-flush mb-3 small">
-          <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 border-0 pt-1 pb-1" v-for="hijo in padre.students" :key="hijo.id">
-            <span>
-              🛼 {{ hijo.nombreCompleto }} <span class="text-muted">({{ hijo.edad || 'N/A' }} años)</span>
-              <span class="text-muted small d-block" style="font-size: 0.7rem; line-height: 1.2;">🏢 {{ formatearMatriculas(hijo.matriculas) || 'Sin matricula' }}</span>
-            </span>
-          </li>
-        </ul>
-        <hr class="text-muted my-2">
-        <div class="d-flex gap-2 mt-3">
-          <button @click="$emit('toggleCardForm', { clientId: padre.id, formType: 'abono' }); $emit('toggleDeudas', null)" class="btn btn-sm btn-success w-100 fw-bold shadow-sm" :disabled="padre.estado === 'INACTIVO'">💰 Abono</button>
-          <button @click="toggleHistorial(); $emit('toggleDeudas', null)" class="btn btn-sm w-100 text-white fw-bold shadow-sm" style="background-color: #374151;">📄 Historial</button>
-          <button @click="activarModoEdicion(); $emit('toggleDeudas', null)" class="btn btn-sm w-100 text-white fw-bold shadow-sm" style="background-color: #475569;">⚙️ Editar</button>
-        </div>
-        <div v-if="padre.deudaTotal > 0" class="mt-3 border-top pt-3">
-          <button @click="toggleDeudas(); $emit('toggleCardForm', { clientId: padre.id, formType: null })" class="btn btn-sm w-100 fw-bold shadow-sm transition" :style="{ backgroundColor: mostrarDeudas ? '#991b1b' : '#e63946', color: 'white' }">💸 Clases por Pagar</button>
-          <div v-if="mostrarDeudas" class="mt-2 p-2 rounded small shadow-sm" style="background-color: #fffbfa; border: 1px solid #e63946;">
-            <ul class="list-group list-group-flush">
-              <li v-for="deuda in listaDeudas" :key="deuda.id" class="list-group-item px-1 py-1 text-muted border-bottom d-flex justify-content-between align-items-center" style="background-color: transparent;">
-                <div><span class="text-dark fw-bold">• {{ deuda.student.nombreCompleto }}</span><br><small class="fw-bold text-muted">{{ formatearFecha(deuda.fecha) }}</small></div>
-                <span class="badge bg-dark fs-6 shadow-sm">${{ formatearDinero(deuda.precioCobrado) }}</span>
-              </li>
-            </ul>
-          </div>
+    <div class="tarjeta-cliente__body" v-if="activeFormType !== 'edit'">
+      <p class="tarjeta-cliente__info"><strong>📞 Teléfono:</strong> {{ padre.telefono }}</p>
+      <ul class="tarjeta-cliente__students">
+        <li v-for="hijo in padre.students" :key="hijo.id" class="tarjeta-cliente__student">
+          <span>
+            🛼 {{ hijo.nombreCompleto }} <span class="text-secondary">({{ hijo.edad || 'N/A' }} años)</span>
+            <span class="tarjeta-cliente__matricula">{{ formatearMatriculas(hijo.matriculas) || 'Sin matrícula' }}</span>
+          </span>
+        </li>
+      </ul>
+      <hr class="tarjeta-cliente__divider">
+      <div class="tarjeta-cliente__actions">
+        <button @click="$emit('toggleCardForm', { clientId: padre.id, formType: 'abono' }); $emit('toggleDeudas', null)"
+                class="app-btn app-btn--outline app-btn--sm" style="flex:1"
+                :disabled="padre.estado === 'INACTIVO'">💰 Abono</button>
+        <button @click="toggleHistorial(); $emit('toggleDeudas', null)"
+                class="app-btn app-btn--ghost app-btn--sm" style="flex:1">📄 Historial</button>
+        <button @click="activarModoEdicion(); $emit('toggleDeudas', null)"
+                class="app-btn app-btn--ghost app-btn--sm" style="flex:1">⚙️ Editar</button>
+      </div>
+      <div v-if="padre.deudaTotal > 0" class="tarjeta-cliente__deudas">
+        <button @click="toggleDeudas(); $emit('toggleCardForm', { clientId: padre.id, formType: null })"
+                class="app-btn app-btn--outline app-btn--sm" style="width:100%">
+          {{ mostrarDeudas ? '⬆ Ocultar' : '💸 Clases por Pagar' }}
+        </button>
+        <div v-if="mostrarDeudas" class="tarjeta-cliente__deudas-list">
+          <ul>
+            <li v-for="deuda in listaDeudas" :key="deuda.id" class="tarjeta-cliente__deuda-item">
+              <div>
+                <span class="fw-semibold">• {{ deuda.student.nombreCompleto }}</span>
+                <br><small class="text-muted">{{ formatearFecha(deuda.fecha) }}</small>
+              </div>
+              <span class="badge-premium" style="background: var(--gray-200); color: var(--gray-800);">${{ formatearDinero(deuda.precioCobrado) }}</span>
+            </li>
+          </ul>
         </div>
       </div>
-      <div v-show="activeFormType" class="border-top panel-desplegable">
-        <AbonoForm v-if="activeFormType === 'abono'" :padre="padre" @recargar="$emit('recargar')" @cerrar="$emit('toggleCardForm', { clientId: padre.id, formType: null })" />
-        <HistorialForm v-if="activeFormType === 'historial'" :parent-id="padre.id" @recargar="$emit('recargar')" />
-        <EditForm v-if="activeFormType === 'edit'" :padre="padre" :sedes="sedes" @recargar="$emit('recargar')" @cancelar="cancelarEdicion" />
-      </div>
+    </div>
+    <div v-show="activeFormType" class="tarjeta-cliente__panel">
+      <AbonoForm v-if="activeFormType === 'abono'" :padre="padre" @recargar="$emit('recargar')" @cerrar="$emit('toggleCardForm', { clientId: padre.id, formType: null })" />
+      <HistorialForm v-if="activeFormType === 'historial'" :parent-id="padre.id" @recargar="$emit('recargar')" />
+      <EditForm v-if="activeFormType === 'edit'" :padre="padre" :sedes="sedes" @recargar="$emit('recargar')" @cancelar="cancelarEdicion" />
     </div>
   </div>
 </template>
@@ -55,7 +67,6 @@ import AbonoForm from './AbonoForm.vue';
 import HistorialForm from './HistorialForm.vue';
 import EditForm from './EditForm.vue';
 
-const esAdmin = localStorage.getItem('authRole') === 'ADMIN';
 const props = defineProps(['padre', 'activeFormType', 'activeDeudasId']);
 const emit = defineEmits(['toggleCardForm', 'toggleDeudas', 'clienteActualizado', 'recargar']);
 
@@ -113,8 +124,147 @@ const copiarLink = async () => {
 </script>
 
 <style scoped>
-.tarjeta-cliente { transition: all 0.2s ease-out; }
-.tarjeta-cliente.border-primary { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important; }
-.panel-desplegable { overflow: hidden; transition: height 0.2s ease-out; }
-.panel-edicion { border-top: 2px solid var(--bs-primary); }
+.tarjeta-cliente {
+  transition: box-shadow var(--transition-normal);
+}
+
+.tarjeta-cliente:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.tarjeta-cliente.opacity-50 {
+  opacity: 0.5;
+}
+
+.tarjeta-cliente__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.tarjeta-cliente__title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tarjeta-cliente__badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.tarjeta-cliente__body {
+  padding: var(--space-3) var(--space-4);
+}
+
+.tarjeta-cliente__info {
+  margin-bottom: var(--space-3);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.tarjeta-cliente__students {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-3) 0;
+}
+
+.tarjeta-cliente__student {
+  padding: var(--space-1) 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.tarjeta-cliente__matricula {
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  color: var(--text-tertiary);
+}
+
+.tarjeta-cliente__divider {
+  border: none;
+  border-top: 1px solid var(--border-primary);
+  margin: var(--space-3) 0;
+}
+
+.tarjeta-cliente__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.tarjeta-cliente__deudas {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-primary);
+}
+
+.tarjeta-cliente__deudas-list {
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+}
+
+.tarjeta-cliente__deudas-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tarjeta-cliente__deuda-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border-primary);
+  font-size: 0.8125rem;
+}
+
+.tarjeta-cliente__deuda-item:last-child {
+  border-bottom: none;
+}
+
+.tarjeta-cliente__panel {
+  border-top: 1px solid var(--border-primary);
+  overflow: hidden;
+}
+
+/* Responsive: acciones en columna en mobile */
+@media (max-width: 768px) {
+  .tarjeta-cliente__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .tarjeta-cliente__badges {
+    align-self: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .tarjeta-cliente__actions {
+    flex-direction: column;
+  }
+
+  .tarjeta-cliente__actions .app-btn {
+    width: 100%;
+  }
+
+  .tarjeta-cliente__body {
+    padding: var(--space-3);
+  }
+
+  .tarjeta-cliente__title {
+    font-size: 0.9375rem;
+  }
+}
 </style>

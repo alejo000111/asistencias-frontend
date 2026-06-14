@@ -6,16 +6,15 @@
     </div>
     <input type="text" v-model="padre.editNombre" class="form-control form-control-sm mb-2" placeholder="Nombre Completo">
     <input type="text" v-model="padre.editTelefono" class="form-control form-control-sm mb-2" placeholder="Telefono">
-    <select v-model="padre.editEstado" class="form-select form-select-sm mb-4 fw-bold shadow-sm"
-      :style="padre.editEstado === 'INACTIVO' ? 'background-color: #fee2e2; color: #991b1b; border-color: #fca5a5;' : 'background-color: #d1fae5; color: #065f46; border-color: #86efac;'">
-      <option value="ACTIVO" style="background-color: #d1fae5; color: #065f46;">🟢 ACTIVO</option>
-      <option value="INACTIVO" style="background-color: #fee2e2; color: #991b1b;">🔴 INACTIVO</option>
+    <select v-model="padre.editEstado" class="form-select form-select-sm mb-4 fw-bold" style="background: var(--input-bg); border-color: var(--input-border);">
+      <option value="ACTIVO">🟢 ACTIVO</option>
+      <option value="INACTIVO">🔴 INACTIVO</option>
     </select>
     <h6 class="text-secondary fw-bold border-bottom pb-1">Editar Deportistas</h6>
     <div v-for="(hijo, idx) in padre.students" :key="hijo.id" class="mb-3 border-start border-3 ps-2 position-relative" style="border-color: #cbd5e1 !important;">
       <div class="d-flex gap-2 mb-1">
         <input type="text" v-model="hijo.editNombre" class="form-control form-control-sm" placeholder="Nombre del Deportista">
-        <button v-if="esAdmin && padre.estado === 'INACTIVO'" @click="eliminarDeportista(hijo.id, hijo.editNombre)" class="btn btn-sm btn-danger px-2 py-0 shadow-sm">🗑️</button>
+        <button v-if="esAdmin && padre.estado === 'INACTIVO'" @click="eliminarDeportista(hijo.id, hijo.editNombre)" class="app-btn app-btn--danger app-btn--sm" style="padding: 2px 8px;">🗑️</button>
       </div>
       <div class="d-flex gap-1 mt-1">
         <input type="date" v-model="hijo.editFechaNacimiento" @change="calcularEdad(hijo)" class="form-control form-control-sm w-50">
@@ -38,8 +37,8 @@
       </div>
     </div>
     <div class="d-flex gap-2 mt-4 pt-2 border-top">
-      <button @click="$emit('cancelar')" class="btn btn-sm btn-outline-danger w-50 fw-bold shadow-sm">✖ Cancelar</button>
-      <button @click="guardarEdicion" class="btn btn-sm btn-success w-50 fw-bold shadow-sm">💾 Guardar</button>
+      <button @click="$emit('cancelar')" class="app-btn app-btn--ghost app-btn--sm" style="flex:1">✖ Cancelar</button>
+      <button @click="guardarEdicion" class="app-btn app-btn--primary app-btn--sm" style="flex:1">💾 Guardar</button>
     </div>
   </div>
 </template>
