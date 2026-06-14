@@ -17,14 +17,18 @@
       </li>
     </ul>
 
-    <!-- Barra de búsqueda en vivo -->
-    <div class="mb-3">
+    <!-- Barra de búsqueda en vivo + Filtro por sede -->
+    <div class="mb-3 d-flex gap-2">
       <input
         type="text"
         v-model="textoBusqueda"
         class="form-control shadow-sm border-secondary"
         placeholder="🔍 Buscar por nombre de padre o deportista..."
       />
+      <select v-model="filtroSedeId" class="form-select shadow-sm border-secondary w-auto" style="min-width: 180px;">
+        <option value="">🏢 Todas las sedes</option>
+        <option v-for="s in sedes" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+      </select>
     </div>
 
     <!-- Mensaje cuando la búsqueda no encuentra resultados -->
@@ -39,8 +43,10 @@
           <TarjetaCliente 
             :padre="padre" 
             :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
+            :activeDeudasId="currentDeudasClientId"
             @recargar="cargarPadres" 
-            @toggleCardForm="onToggleCardForm" 
+            @toggleCardForm="onToggleCardForm"
+            @toggleDeudas="onToggleDeudas"
           />
         </div>
         <div v-if="padresActivosConDeuda.length === 0" class="text-muted mb-4">Nadie debe dinero. ¡Excelente!</div>
@@ -52,8 +58,10 @@
           <TarjetaCliente 
             :padre="padre" 
             :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
+            :activeDeudasId="currentDeudasClientId"
             @recargar="cargarPadres" 
-            @toggleCardForm="onToggleCardForm" 
+            @toggleCardForm="onToggleCardForm"
+            @toggleDeudas="onToggleDeudas"
           />
         </div>
         <div v-if="padresActivosAlDia.length === 0" class="text-muted">No hay clientes en esta categoría.</div>
@@ -69,8 +77,10 @@
           <TarjetaCliente 
             :padre="padre" 
             :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
+            :activeDeudasId="currentDeudasClientId"
             @recargar="cargarPadres" 
-            @toggleCardForm="onToggleCardForm" 
+            @toggleCardForm="onToggleCardForm"
+            @toggleDeudas="onToggleDeudas"
           />
         </div>
         <div v-if="padresInactivos.length === 0" class="text-muted">No hay clientes inactivos.</div>
@@ -86,11 +96,14 @@ import axios from 'axios';
 import TarjetaCliente from '../components/TarjetaCliente.vue';
 
 const padres = ref([]);
+const sedes = ref([]);
 const pestanaActual = ref('ACTIVOS');
 const textoBusqueda = ref('');
+const filtroSedeId = ref('');
 
 const currentOpenClientId = ref(null);
 const currentOpenFormType = ref(null); // 'abono', 'historial', o 'edit'
+const currentDeudasClientId = ref(null);
 
 // Si se hace clic en el mismo formulario del mismo cliente, se cierra.
 const onToggleCardForm = ({ clientId, formType }) => {
@@ -105,19 +118,44 @@ const onToggleCardForm = ({ clientId, formType }) => {
   }
 };
 
+// Acordeón para "Clases por Pagar": solo un cliente con deudas visibles a la vez
+const onToggleDeudas = (clientId) => {
+  if (currentDeudasClientId.value === clientId) {
+    currentDeudasClientId.value = null;
+  } else {
+    currentDeudasClientId.value = clientId;
+  }
+};
+
 // Filtro de búsqueda en vivo: busca por nombre de padre o de deportista
 const padresFiltrados = computed(() => {
+  let filtrados = padres.value;
+
+  // Filtrar por sede
+  if (filtroSedeId.value) {
+    const sedeId = Number(filtroSedeId.value);
+    filtrados = filtrados.filter(p =>
+      p.students && p.students.some(hijo =>
+        hijo.matriculas && hijo.matriculas.some(m => m.sede && m.sede.id === sedeId)
+      )
+    );
+  }
+
+  // Filtrar por texto de búsqueda
   const busqueda = textoBusqueda.value.toLowerCase().trim();
-  if (!busqueda) return padres.value;
-  return padres.value.filter(padre => {
-    if (padre.nombreCompleto.toLowerCase().includes(busqueda)) return true;
-    if (padre.students) {
-      return padre.students.some(hijo =>
-        hijo.nombreCompleto.toLowerCase().includes(busqueda)
-      );
-    }
-    return false;
-  });
+  if (busqueda) {
+    filtrados = filtrados.filter(padre => {
+      if (padre.nombreCompleto.toLowerCase().includes(busqueda)) return true;
+      if (padre.students) {
+        return padre.students.some(hijo =>
+          hijo.nombreCompleto.toLowerCase().includes(busqueda)
+        );
+      }
+      return false;
+    });
+  }
+
+  return filtrados;
 });
 
 // Filtros Computados (ahora sobre la lista filtrada por búsqueda)
@@ -126,6 +164,13 @@ const padresInactivos = computed(() => padresFiltrados.value.filter(p => p.estad
 
 const padresActivosConDeuda = computed(() => padresActivos.value.filter(p => p.deudaTotal > 0));
 const padresActivosAlDia = computed(() => padresActivos.value.filter(p => p.deudaTotal === 0));
+
+const cargarSedes = async () => {
+  try {
+    const res = await axios.get('/api/sedes');
+    sedes.value = res.data;
+  } catch (e) { console.error(e); }
+};
 
 const cargarPadres = async () => {
   try {
@@ -154,5 +199,5 @@ const cargarPadres = async () => {
   } catch (error) { console.error(error); }
 };
 
-onMounted(() => { cargarPadres(); });
+onMounted(() => { cargarPadres(); cargarSedes(); });
 </script>

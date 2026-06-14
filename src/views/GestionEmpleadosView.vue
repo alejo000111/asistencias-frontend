@@ -34,7 +34,7 @@
           <div class="col-md-6" v-if="formRole === 'EMPLEADO'">
             <label class="form-label fw-semibold small">Sedes Autorizadas</label>
             <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
-              <div v-for="sede in sedesDisponibles" :key="sede.id" class="form-check">
+              <div v-for="sede in sedesDisponibles.filter(s => s.activa !== false)" :key="sede.id" class="form-check">
                 <input
                   type="checkbox"
                   :value="sede.id"

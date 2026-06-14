@@ -72,9 +72,14 @@
                   <div>
                     <div class="fw-semibold small">{{ est.nombreCompleto }}</div>
                     <div class="text-muted" style="font-size: 12px;">
-                      <span class="badge rounded-pill px-2 py-1" :style="'font-size: 0.70rem;' + (est.nivel === 'AVANZADO' ? 'background-color: #f97316; color: white;' : 'background-color: #10b981; color: white;')">
-                        {{ descripcionNivel(est.nivel) }}
+                      <span v-for="mat in (est.matriculas || []).slice(0, 1)" :key="mat.sede?.id || 0"
+                            class="badge rounded-pill px-2 py-1" 
+                            :style="{ fontSize: '0.70rem', backgroundColor: colorDeNivel(mat.nivel), color: 'white' }">
+                        {{ mat.nivel || 'Sin nivel' }}
                       </span>
+                      <span v-if="!(est.matriculas && est.matriculas.length > 0)"
+                            class="badge rounded-pill px-2 py-1 bg-secondary"
+                            style="font-size: 0.70rem;">Sin nivel</span>
                     </div>
                   </div>
                 </div>
@@ -211,9 +216,12 @@ function descripcionMovimiento(log) {
   return log.tipoMovimiento || 'Movimiento'
 }
 
-function descripcionNivel(nivel) {
-  if (nivel === 'AVANZADO') return '🔥 Avanzado'
-  return '🌱 Iniciación'
+const EMOJI_COLOR_MAP = { '🌱': '#059669', '🔥': '#ea580c', '⭐': '#0d6efd', '💪': '#7c3aed', '⚡': '#ca8a04', '🎯': '#dc2626', '🚀': '#0891b2', '💎': '#9333ea', '🌈': '#d946ef', '🦁': '#d97706' };
+
+function colorDeNivel(nivel) {
+  if (!nivel) return '#6c757d';
+  const firstChar = nivel.charAt(0);
+  return EMOJI_COLOR_MAP[firstChar] || '#6c757d';
 }
 
 function formatearFecha(fechaStr) {

@@ -31,7 +31,7 @@
             <tbody>
               <tr v-for="log in paginatedHistorial" :key="log.id">
                 <td class="fw-bold text-secondary">{{ formatearFecha(log.fecha) }}</td>
-                <td class="fw-bold">{{ log.parent ? log.parent.nombreCompleto : 'Desconocido' }}</td>
+                <td class="fw-bold">{{ log.parent ? log.parent.nombreCompleto : (log.nombreClienteRespaldo || 'Desconocido') }}</td>
                 
                 <td>
                   <span class="badge bg-success fs-6">💰 Abono</span>
@@ -101,7 +101,7 @@ const historialFiltrado = computed(() => {
   const busqueda = textoBusqueda.value.toLowerCase().trim();
   if (!busqueda) return historialIngresos.value;
   return historialIngresos.value.filter(log => {
-    const nombre = log.parent ? log.parent.nombreCompleto.toLowerCase() : '';
+    const nombre = log.parent ? log.parent.nombreCompleto.toLowerCase() : (log.nombreClienteRespaldo || '').toLowerCase();
     return nombre.includes(busqueda);
   });
 });
