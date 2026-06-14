@@ -82,6 +82,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
+import { formatearFecha } from '@/utils/formatters';
 
 const historial = ref([]);
 const textoBusqueda = ref('');
@@ -120,14 +121,6 @@ const paginatedHistorial = computed(() => {
   const fin = inicio + registrosPorPagina;
   return historialFiltrado.value.slice(inicio, fin);
 });
-
-const formatearFecha = (fechaDato) => {
-  if (!fechaDato) return '';
-  if (Array.isArray(fechaDato)) {
-    return new Date(Date.UTC(fechaDato[0], fechaDato[1] - 1, fechaDato[2])).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-  }
-  return new Date(fechaDato).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-};
 
 const cargarHistorial = async () => {
   try {

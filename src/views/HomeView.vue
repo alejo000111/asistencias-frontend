@@ -114,6 +114,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
+import { formatearMontoInput, actualizarMontoInput } from '@/utils/formatters';
 
 const students = ref([]);
 const sedesDisponibles = ref([]);
@@ -164,17 +165,8 @@ const estudiantesFiltrados = computed(() => {
   return filtrados;
 });
 
-const formatearMontoInput = (valor) => {
-  if (valor === null || valor === undefined || valor === '') return '';
-  const soloDigitos = String(valor).replace(/\D/g, '');
-  if (!soloDigitos) return '';
-  return Number(soloDigitos).toLocaleString('es-CO');
-};
-
 const actualizarPrecioInput = (event, estudiante) => {
-  // Limpieza segura: solo aplica replace si es string (event.target.value siempre lo es)
-  const raw = (event.target.value || '').replace(/\D/g, '');
-  estudiante.precioPersonalizado = raw ? Number(raw) : null;
+  actualizarMontoInput(event, estudiante, 'precioPersonalizado');
 };
 
 const cargarEstudiantes = async () => {
@@ -231,14 +223,6 @@ const registrarAsistencias = async () => {
 
   const nivelAEnviar = tipoClase.value === 'GRUPAL' ? nivelClase.value : null;
 
-  // DEBUG: verificar payload antes de enviar
-  console.log('=== REGISTRAR ASISTENCIAS ===');
-  console.log('tipoClase:', tipoClase.value);
-  console.log('isPersonalizada:', tipoClase.value === 'PERSONALIZADA');
-  console.log('nivel:', nivelAEnviar);
-  console.log('sedeId:', sedeSeleccionada.value);
-  console.log('presentes:', presentes.length, presentes.map(e => ({ id: e.id, name: e.nombreCompleto })));
-
   try {
     await Promise.all(presentes.map(est => {
       const params = {
@@ -248,8 +232,6 @@ const registrarAsistencias = async () => {
         fecha: fechaAsistencia.value,
         sedeId: sedeSeleccionada.value
       };
-      console.log('Payload para', est.nombreCompleto, ':', JSON.stringify(params));
-      // Limpieza defensiva: Number() maneja strings y números; isNaN filtra vacíos/inválidos
       let precioLimpio = null;
       if (est.precioPersonalizado != null && est.precioPersonalizado !== '') {
         const num = Number(est.precioPersonalizado);
