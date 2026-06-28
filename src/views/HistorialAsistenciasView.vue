@@ -1,9 +1,9 @@
 <template>
-  <div class="mt-4">
-    <h3 class="mb-4">📅 Historial de Asistencias</h3>
+  <div>
+    <h3 class="mb-3 mt-0">📅 Historial de Asistencias</h3>
 
     <!-- Buscador por nombre de deportista -->
-    <div class="mb-3">
+    <div class="mb-1">
       <input
         type="text"
         v-model="searchQuery"
@@ -12,29 +12,28 @@
       />
     </div>
     
-    <div class="row">
-      <AsistenciaCard
-        v-for="grupo in asistenciasPaginadas"
-        :key="grupo.id"
-        :grupo="grupo"
-        :expandido="!!gruposExpandidos[grupo.id]"
-        class="col-md-4 mb-3"
-        @toggle="toggleGrupo"
-        @eliminarRegistro="eliminarRegistro"
-        @eliminarListaCompleta="eliminarListaCompleta"
-      />
+    <div class="row g-3 mt-1 align-items-start">
+      <div v-for="grupo in asistenciasPaginadas" :key="grupo.id" class="col-12 col-md-6 col-lg-4">
+        <AsistenciaCard
+          :grupo="grupo"
+          :is-open="tarjetaAbiertaId === grupo.id"
+          @toggle="id => tarjetaAbiertaId = (tarjetaAbiertaId === id ? null : id)"
+          @eliminarRegistro="eliminarRegistro"
+          @eliminarListaCompleta="eliminarListaCompleta"
+        />
+      </div>
 
       <div v-if="asistenciasAgrupadas.length === 0" class="col-12 text-center text-muted mt-5">
         No hay registros de asistencias todavía.
       </div>
     </div>
 
-    <div v-if="totalPaginas > 1" class="d-flex justify-content-center align-items-center mt-4 mb-5 gap-3">
-      <button @click="paginaActual--" :disabled="paginaActual === 1" class="btn btn-outline-primary fw-bold px-4">
+    <div v-if="totalPaginas > 1" class="d-flex justify-content-center align-items-center mt-2 mb-2 gap-2">
+      <button @click="paginaActual--" :disabled="paginaActual === 1" class="btn btn-outline-primary btn-sm fw-bold px-3">
         ⬅ Anterior
       </button>
-      <span class="fw-bold text-muted">Página {{ paginaActual }} de {{ totalPaginas }}</span>
-      <button @click="paginaActual++" :disabled="paginaActual === totalPaginas" class="btn btn-outline-primary fw-bold px-4">
+      <span class="fw-bold text-muted small">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+      <button @click="paginaActual++" :disabled="paginaActual === totalPaginas" class="btn btn-outline-primary btn-sm fw-bold px-3">
         Siguiente ➡
       </button>
     </div>
@@ -47,6 +46,8 @@ import axios from 'axios';
 import { formatearFecha } from '@/utils/formatters';
 import AsistenciaCard from '@/components/AsistenciaCard.vue';
 
+const tarjetaAbiertaId = ref(null);
+
 const searchQuery = ref('');
 const rawAsistencias = ref([]);
 const EMOJI_COLOR_MAP = { '🌱': '#059669', '🔥': '#ea580c', '⭐': '#0d6efd', '💪': '#7c3aed', '⚡': '#ca8a04', '🎯': '#dc2626', '🚀': '#0891b2', '💎': '#9333ea', '🌈': '#d946ef', '🦁': '#d97706' };
@@ -56,15 +57,6 @@ const sedes = ref([]);
 const paginaActual = ref(1);
 const itemsPorPagina = 9;
 
-const gruposExpandidos = ref({});
-
-const toggleGrupo = (id) => {
-  if (gruposExpandidos.value[id]) {
-    gruposExpandidos.value = {};
-  } else {
-    gruposExpandidos.value = { [id]: true };
-  }
-};
 
 const getGrupoInfo = (nivel, sedeId) => {
   const fallback = { emoji: '', colorHex: '#10b981' };
@@ -90,7 +82,7 @@ const asistenciasAgrupadas = computed(() => {
   let datos = raw;
   if (busqueda) {
     datos = raw.filter(a => {
-      const nombre = a.student ? a.student.nombreCompleto : (a.nombreEstudianteHistorico || '');
+      const nombre = a.nombreEstudiante || a.nombreEstudianteHistorico || '';
       return nombre.toLowerCase().includes(busqueda);
     });
   }
@@ -103,7 +95,7 @@ const asistenciasAgrupadas = computed(() => {
       color = '#0d6efd';
     } else if (a.nivel) {
       const nivelLimpio = a.nivel.trim();
-      const info = getGrupoInfo(nivelLimpio, a.sede?.id);
+      const info = getGrupoInfo(nivelLimpio, a.sedeId);
       if (nivelLimpio.startsWith('⭐')) {
         titulo = nivelLimpio;
       } else if (info.emoji && nivelLimpio.startsWith(info.emoji)) {
@@ -128,7 +120,7 @@ const asistenciasAgrupadas = computed(() => {
       grupos[key] = {
         id: key, tiempoMs: new Date(yyyy, mm - 1, dd, hh, min).getTime(),
         fechaDisplay: formatearFecha(a.fecha),
-        titulo, color, sede: a.sede?.nombre || null,
+        titulo, color,        sede: a.sedeNombre || null,
         estudiantes: [], pendientesCount: 0
       };
     }
@@ -139,7 +131,7 @@ const asistenciasAgrupadas = computed(() => {
 
     grupos[key].estudiantes.push({
       idAsistencia: a.id,
-      nombre: a.student ? a.student.nombreCompleto : (a.nombreEstudianteHistorico || "Estudiante") + " (Retirado)",
+      nombre: a.nombreEstudiante || a.nombreEstudianteHistorico || "Estudiante retirado",
       pagada: a.clasePaga, precioCobrado: precio, esPrecioEspecial
     });
   });
@@ -166,7 +158,24 @@ watch(searchQuery, () => { paginaActual.value = 1; });
 const cargarAsistencias = async () => {
   try {
     const response = await axios.get('/api/finanzas/historial-asistencias');
-    rawAsistencias.value = response.data;
+    let datos = response.data;
+
+    // Defensa en profundidad: si el usuario es EMPLEADO, filtramos en frontend
+    // por si el backend no hubiera aplicado el filtro (cache, error, etc.)
+    const rol = localStorage.getItem('authRole');
+    if (rol === 'EMPLEADO') {
+      const sedesPermitidas = (() => {
+        try { return JSON.parse(localStorage.getItem('authSedes') || '[]'); }
+        catch { return []; }
+      })();
+      if (sedesPermitidas.length > 0) {
+        datos = datos.filter(a => sedesPermitidas.includes(a.sedeId));
+      } else {
+        datos = []; // EMPLEADO sin sedes → no ve nada (consistente con backend)
+      }
+    }
+
+    rawAsistencias.value = datos;
   } catch (error) { console.error("Error:", error); }
 };
 

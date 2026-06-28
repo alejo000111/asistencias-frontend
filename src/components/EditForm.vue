@@ -95,8 +95,8 @@ const guardarEdicion = async () => {
     emit('cancelar');
     emit('recargar');
   } catch (error) {
-    console.error(error);
-    alert("❌ Error al guardar los cambios.");
+    console.error("Detalle del error:", error);
+    alert("Hubo un error al cambiar los datos.");
   }
 };
 
@@ -110,9 +110,9 @@ const eliminarDeportista = async (idHijo, nombreHijo) => {
     }
     emit('cancelar');
     emit('recargar');
-  } catch (e) {
-    console.error(e);
-    alert('❌ Error.');
+  } catch (error) {
+    console.error("Detalle del error:", error);
+    alert("Hubo un error al cambiar los datos.");
   }
 };
 
@@ -123,8 +123,9 @@ const eliminarPadre = async () => {
     alert(res.data);
     emit('cancelar');
     emit('recargar');
-  } catch (e) {
-    alert("❌ " + (e.response?.data || e.message));
+  } catch (error) {
+    console.error("Detalle del error:", error);
+    alert("Hubo un error al cambiar los datos.");
   }
 };
 </script>

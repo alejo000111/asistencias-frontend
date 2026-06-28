@@ -1,29 +1,30 @@
 <template>
-  <div class="card shadow-sm border-dark">
-    <div class="card-header text-white fw-bold text-center py-2" :style="{ backgroundColor: grupo.color }">
-      <div>{{ grupo.titulo }}</div>
-      <div v-if="grupo.sede" class="mt-1" style="font-size: 0.7rem; opacity: 0.9;">
-        🏢 {{ grupo.sede }}
+  <div class="card shadow-sm" style="padding: 0 !important; border-radius: 16px !important; overflow: hidden !important; border: 1px solid #e5e7eb; width: 100%; max-width: none; margin: 0;">
+    <!-- Cabecera edge-to-edge con color dinámico del grupo -->
+    <div class="text-white text-center w-100 p-2" :style="{ backgroundColor: grupo.color || '#10b981', margin: '0' }">
+      <div class="fw-bold fs-6">{{ grupo.titulo }}</div>
+      <div v-if="grupo.sede" class="m-0" style="font-size: 0.8rem; opacity: 0.75;">
+        <span class="me-1">🏢</span>{{ grupo.sede }}
       </div>
     </div>
 
-    <div class="card-body text-center">
-      <h5 class="card-title text-dark mb-1">{{ grupo.fechaDisplay }}</h5>
+    <div class="card-body p-2 d-flex flex-column align-items-center gap-2">
+      <h5 class="fw-bold fs-6 mb-0" style="color: #1f2937;">{{ grupo.fechaDisplay }}</h5>
 
-      <div class="mb-3">
-        <span v-if="grupo.pendientesCount > 0" class="badge bg-danger shadow-sm px-2 py-1" style="font-size: 0.8rem;">
+      <div>
+        <span v-if="grupo.pendientesCount > 0" class="badge px-3 py-1 fw-semibold" style="font-size: 0.75rem; background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 20px;">
           🚨 {{ grupo.pendientesCount }} por pagar
         </span>
-        <span v-else class="badge bg-success shadow-sm px-2 py-1" style="font-size: 0.8rem;">
+        <span v-else class="badge px-3 py-1 fw-semibold" style="font-size: 0.75rem; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; border-radius: 20px;">
           ✅ 100% Paga
         </span>
       </div>
 
-      <button @click="$emit('toggle', grupo.id)" class="btn btn-sm w-100 mb-2 fw-bold shadow-sm btn-ver-alumnos">
-        {{ expandido ? 'Ocultar Alumnos' : '👀 Ver Alumnos (' + grupo.estudiantes.length + ')' }}
+      <button @click="emit('toggle', grupo.id)" class="btn btn-outline-secondary btn-sm w-100 fw-bold text-dark" style="border-radius: 8px;">
+        {{ isOpen ? '⬆ Ocultar Alumnos' : '👀 Ver Alumnos (' + grupo.estudiantes.length + ')' }}
       </button>
 
-      <div v-if="expandido" class="text-start mt-2 border-top pt-2 small">
+      <div v-if="isOpen" class="text-start w-100" style="padding-top: 12px; border-top: 1px solid #f3f4f6;">
         <div v-if="alumnosPorPagar.length > 0" class="mb-2">
           <h6 class="text-danger fw-bold mb-1" style="font-size: 0.85rem;">❌ Por Pagar</h6>
           <ul class="list-group list-group-flush">
@@ -50,8 +51,8 @@
           </ul>
         </div>
 
-        <div v-if="esAdmin" class="mt-3 text-center border-top pt-2">
-          <button @click="$emit('eliminarListaCompleta', grupo)" class="btn btn-outline-danger btn-sm w-100 fw-bold">
+        <div v-if="esAdmin" class="mt-3 text-center" style="padding-top: 8px; border-top: 1px solid #f3f4f6;">
+          <button @click="$emit('eliminarListaCompleta', grupo)" class="btn btn-outline-danger btn-sm w-100 fw-bold" style="border-radius: 8px;">
             🗑️ Eliminar Lista Completa
           </button>
         </div>
@@ -68,30 +69,15 @@ const esAdmin = localStorage.getItem('authRole') === 'ADMIN';
 
 const props = defineProps({
   grupo: { type: Object, required: true },
-  expandido: { type: Boolean, default: false }
+  isOpen: { type: Boolean, default: false }
 });
 
-defineEmits(['toggle', 'eliminarRegistro', 'eliminarListaCompleta']);
+const emit = defineEmits(['eliminarRegistro', 'eliminarListaCompleta', 'toggle']);
 
 const alumnosPorPagar = computed(() => props.grupo.estudiantes.filter(e => !e.pagada));
 const alumnosPagos = computed(() => props.grupo.estudiantes.filter(e => e.pagada));
 </script>
 
 <style scoped>
-.btn-ver-alumnos {
-  background-color: #212529;
-  color: white;
-  border: 1px solid transparent;
-  transition: all 0.2s ease-in-out;
-}
-.btn-ver-alumnos:hover {
-  background-color: #495057;
-  color: white;
-  border: 1px solid #ced4da;
-  transform: scale(1.01);
-}
-.btn-ver-alumnos:active {
-  background-color: #000000;
-  transform: scale(0.99);
-}
+/* No custom styles needed — all styles are handled by Bootstrap + inline */
 </style>

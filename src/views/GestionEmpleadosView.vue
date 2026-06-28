@@ -1,7 +1,7 @@
 <template>
-  <div class="mt-4">
+  <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="mb-0">👤 Gestión de Empleados</h3>
+      <h3 class="mb-0 mt-0">👤 Gestión de Empleados</h3>
       <button class="btn btn-primary fw-bold shadow-sm" @click="abrirNuevo">
         ➕ Nuevo Empleado
       </button>
@@ -83,10 +83,10 @@
                 </span>
               </td>
               <td class="small">
-                <span v-if="emp.sedesAutorizadas && emp.sedesAutorizadas.length > 0">
-                  {{ emp.sedesAutorizadas.map(s => s.nombre).join(', ') }}
+                <span v-if="emp.sedeNombres && emp.sedeNombres.length > 0">
+                  {{ emp.sedeNombres.join(', ') }}
                 </span>
-                <span v-else class="text-muted">Todas</span>
+                <span v-else class="text-muted">Todas / Sin sede</span>
               </td>
               <td class="text-end">
                 <button class="btn btn-sm btn-outline-primary me-1" @click="editar(emp)">✏️</button>
@@ -148,7 +148,7 @@ const editar = (emp) => {
   formUsername.value = emp.username;
   formPassword.value = '';
   formRole.value = emp.role;
-  formSedeIds.value = (emp.sedesAutorizadas || []).map(s => s.id);
+  formSedeIds.value = emp.sedeIds || [];
   mostrarFormulario.value = true;
 };
 

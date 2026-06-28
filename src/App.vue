@@ -334,13 +334,13 @@ const cerrarSesion = () => {
    📐 MAIN LAYOUT
    ============================================================ */
 .app-main {
-  padding: var(--space-6) 0;
+  padding: var(--space-3) 0;
   min-height: calc(100vh - 60px);
 }
 
 @media (min-width: 768px) {
   .app-main {
-    padding: var(--space-8) 0;
+    padding: var(--space-4) 0;
   }
 }
 </style>

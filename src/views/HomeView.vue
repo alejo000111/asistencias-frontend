@@ -1,6 +1,6 @@
 <template>
-  <div class="mt-4">
-    <h3 class="mb-4">📋 Registrar Asistencia</h3>
+  <div>
+    <h3 class="mb-4 mt-0">📋 Registrar Asistencia</h3>
 
     <!-- Bloqueo por sede inactiva -->
     <div v-if="sedesCargadas && sedesActivas.length === 0" class="card shadow-sm border-warning mb-4">
@@ -128,11 +128,61 @@
             <input type="date" v-model="fechaAsistencia" class="form-control">
             <small class="home-footer-hint">Si lo dejas vacío, se usará la fecha de hoy.</small>
           </div>
-          <button @click="registrarAsistencias" class="app-btn app-btn--primary app-btn--lg home-footer-btn">
-            ✅ Registrar Asistencias
+          <button @click="registrarAsistencias" class="app-btn app-btn--primary app-btn--lg home-footer-btn" :disabled="registrando">
+            {{ registrando ? '⏳ Registrando...' : '✅ Registrar Asistencias' }}
           </button>
         </div>
 
+      </div>
+    </div>
+
+    <!-- Resultado del registro de asistencias -->
+    <div v-if="resultadoRegistro" class="mt-4">
+      <div v-if="resultadoRegistro.fallidos.length === 0" class="alert alert-success d-flex align-items-center gap-2 shadow-sm">
+        <span style="font-size: 1.5rem;">✅</span>
+        <div>
+          <strong class="d-block">{{ resultadoRegistro.exitosos.length }} asistencias registradas con éxito.</strong>
+          <small class="text-success-emphasis">Todos los estudiantes fueron registrados correctamente.</small>
+        </div>
+      </div>
+
+      <div v-else class="card shadow-sm border-warning">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span style="font-size: 1.5rem;">⚠️</span>
+            <div>
+              <strong class="d-block text-warning">Registro parcial</strong>
+              <small class="text-muted">
+                {{ resultadoRegistro.exitosos.length }} exitoso(s), {{ resultadoRegistro.fallidos.length }} fallido(s).
+                Los exitosos ya quedaron guardados. Corrige los errores y registra solo los pendientes.
+              </small>
+            </div>
+          </div>
+
+          <div v-if="resultadoRegistro.exitosos.length > 0" class="mb-2">
+            <strong class="text-success small">✔ Registrados:</strong>
+            <div class="d-flex flex-wrap gap-1 mt-1">
+              <span v-for="nombre in resultadoRegistro.exitosos" :key="nombre"
+                    class="badge bg-success-subtle text-success-emphasis px-2 py-1">
+                {{ nombre }}
+              </span>
+            </div>
+          </div>
+
+          <div v-if="resultadoRegistro.fallidos.length > 0">
+            <strong class="text-danger small">✖ Fallaron — reinténtalos:</strong>
+            <div class="d-flex flex-wrap gap-1 mt-1">
+              <span v-for="f in resultadoRegistro.fallidos" :key="f.nombre"
+                    class="badge bg-danger-subtle text-danger-emphasis px-2 py-1"
+                    :title="f.error">
+                {{ f.nombre }}
+              </span>
+            </div>
+            <button @click="resultadoRegistro = null" class="btn btn-sm btn-outline-secondary mt-2">
+              Descartar y reintentar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -236,6 +286,9 @@ const cargarSedes = async () => {
   }
 };
 
+const registrando = ref(false);
+const resultadoRegistro = ref(null); // { exitosos: string[], fallidos: { nombre: string, error: string }[] }
+
 const registrarAsistencias = async () => {
   const presentes = estudiantesFiltrados.value.filter(s => s.presente);
   if (presentes.length === 0) {
@@ -249,36 +302,49 @@ const registrarAsistencias = async () => {
   }
 
   const nivelAEnviar = tipoClase.value === 'GRUPAL' ? nivelClase.value : null;
+  registrando.value = true;
+  resultadoRegistro.value = null;
 
-  try {
-    await Promise.all(presentes.map(est => {
-      const params = {
-        studentId: est.id,
-        tipoClase: tipoClase.value,
-        nivel: nivelAEnviar,
-        fecha: fechaAsistencia.value,
-        sedeId: sedeSeleccionada.value
-      };
-      let precioLimpio = null;
-      if (est.precioPersonalizado != null && est.precioPersonalizado !== '') {
-        const num = Number(est.precioPersonalizado);
-        if (!isNaN(num) && num >= 0) {
-          precioLimpio = num;
-        }
+  const results = await Promise.allSettled(presentes.map(est => {
+    const params = {
+      studentId: est.id,
+      tipoClase: tipoClase.value,
+      nivel: nivelAEnviar,
+      fecha: fechaAsistencia.value,
+      sedeId: sedeSeleccionada.value
+    };
+    let precioLimpio = null;
+    if (est.precioPersonalizado != null && est.precioPersonalizado !== '') {
+      const num = Number(est.precioPersonalizado);
+      if (!isNaN(num) && num >= 0) {
+        precioLimpio = num;
       }
-      if (precioLimpio !== null) {
-        params.precioPersonalizado = precioLimpio;
-      }
-      return axios.post('/api/finanzas/asistencia', null, { params });
-    }));
+    }
+    if (precioLimpio !== null) {
+      params.precioPersonalizado = precioLimpio;
+    }
+    return axios.post('/api/finanzas/asistencia', null, { params });
+  }));
 
-    alert("✅ Asistencias registradas con éxito.");
-    
+  registrando.value = false;
+
+  const exitosos = [];
+  const fallidos = [];
+
+  results.forEach((r, i) => {
+    const nombre = presentes[i].nombreCompleto;
+    if (r.status === 'fulfilled') {
+      exitosos.push(nombre);
+    } else {
+      fallidos.push({ nombre, error: r.reason?.response?.data || r.reason?.message || 'Error de conexión' });
+    }
+  });
+
+  resultadoRegistro.value = { exitosos, fallidos };
+
+  if (fallidos.length === 0) {
     students.value.forEach(s => { s.presente = false; s.precioPersonalizado = null; });
     fechaAsistencia.value = '';
-  } catch (error) {
-    console.error(error);
-    alert("❌ Hubo un error al registrar las asistencias.");
   }
 };
 

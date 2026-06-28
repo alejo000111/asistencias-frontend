@@ -1,6 +1,6 @@
 <template>
-  <div class="row mt-4 align-items-start">
-    <h3 class="mb-4">📝 Inscripciones</h3>
+  <div class="row align-items-start">
+    <h3 class="mb-4 mt-0">📝 Inscripciones</h3>
     <div class="col-md-5 mb-4">
       <div class="card shadow-sm border-success">
         <div class="card-header bg-success text-white"><h5 class="mb-0">👨‍👩‍👦 Registrar Padre / Acudiente</h5></div>
@@ -128,13 +128,16 @@ const cargarSedes = async () => {
 };
 
 const enviarPadre = async () => {
-  if (!formPadre.value.nombre || !formPadre.value.apellido || !formPadre.value.telefono) { alert("⚠️ Completa todos los campos del padre."); return; }
-  try {
-    await axios.post('/api/registro/padre', null, { params: formPadre.value });
-    alert("✅ Padre registrado con exito");
-    formPadre.value = { nombre: '', apellido: '', telefono: '' };
-    cargarPadres();
-  } catch (error) { alert("❌ Error"); }
+  if (!formPadre.value.nombre || !formPadre.value.apellido || !formPadre.value.telefono) { alert("⚠️ Completa todos los campos del padre."); return; }    try {
+      await axios.post('/api/registro/padre', null, { params: formPadre.value });
+      alert("✅ Padre registrado con exito");
+      formPadre.value = { nombre: '', apellido: '', telefono: '' };
+      cargarPadres();
+    } catch (error) {
+      if (error.response?.status === 401 || error.response?.status === 403) return; // interceptor ya maneja esto
+      alert(error.response?.data || "❌ Error al registrar el padre. Revisa la consola.");
+      console.error(error);
+    }
 };
 
 const enviarDeportista = async () => {
@@ -152,24 +155,28 @@ const enviarDeportista = async () => {
   sedeIdsSeleccionados.value.forEach(sid => {
     matriculas.push({ sedeId: sid, nivel: nivelesPorSede.value[sid] });
   });
-  if (matriculas.length === 0) { alert("⚠️ Selecciona al menos una sede y su grupo."); return; }
-  try {
-    await axios.post('/api/registro/deportista', {
-      parentId: formDeportista.value.parentId,
-      nombre: formDeportista.value.nombre,
-      apellido: formDeportista.value.apellido,
-      edad: formDeportista.value.edad,
-      fechaNacimiento: formDeportista.value.fechaNacimiento,
-      matriculas: matriculas
-    });
-    alert("✅ Deportista registrado con exito");
-    formDeportista.value = { parentId: '', nombre: '', apellido: '', edad: '', fechaNacimiento: '' };
-    textoBusquedaPadre.value = '';
-    padreSeleccionado.value = null;
-    mostrarDropdown.value = false;
-    sedeIdsSeleccionados.value = [];
-    nivelesPorSede.value = {};
-  } catch (error) { alert("❌ Error"); }
+  if (matriculas.length === 0) { alert("⚠️ Selecciona al menos una sede y su grupo."); return; }    try {
+      await axios.post('/api/registro/deportista', {
+        parentId: formDeportista.value.parentId,
+        nombre: formDeportista.value.nombre,
+        apellido: formDeportista.value.apellido,
+        edad: formDeportista.value.edad,
+        fechaNacimiento: formDeportista.value.fechaNacimiento,
+        matriculas: matriculas
+      });
+      alert("✅ Deportista registrado con exito");
+      formDeportista.value = { parentId: '', nombre: '', apellido: '', edad: '', fechaNacimiento: '' };
+      textoBusquedaPadre.value = '';
+      padreSeleccionado.value = null;
+      mostrarDropdown.value = false;
+      sedeIdsSeleccionados.value = [];
+      nivelesPorSede.value = {};
+    } catch (error) {
+      if (error.response?.status === 401 || error.response?.status === 403) return; // interceptor ya maneja esto
+      const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : null) || "❌ Error al registrar el deportista. Revisa la consola.";
+      alert(msg);
+      console.error(error);
+    }
 };
 
 onMounted(() => { cargarPadres(); cargarSedes(); });

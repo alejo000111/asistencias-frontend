@@ -1,6 +1,6 @@
 <template>
-  <div class="mt-4">
-    <h3 class="mb-4">📊 Historial de Caja</h3>
+  <div>
+    <h3 class="mb-4 mt-0">📊 Historial de Caja</h3>
 
     <!-- Barra de búsqueda en vivo -->
     <div class="mb-3">

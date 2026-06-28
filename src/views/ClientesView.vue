@@ -1,7 +1,7 @@
 <template>
-  <div class="mt-4">
+  <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="mb-0">👥 Gestión de Clientes y Perfiles</h3>
+      <h3 class="mb-0 mt-0">👥 Gestión de Clientes y Perfiles</h3>
     </div>
 
     <ul class="nav nav-tabs mb-4">
@@ -174,7 +174,9 @@ const cargarSedes = async () => {
 
 const cargarPadres = async () => {
   try {
-    const response = await axios.get('/api/finanzas/padres');
+    // Usamos el endpoint /api/clientes que ya aplica el filtro por sedes
+    // autorizadas para el rol EMPLEADO (ClienteController.listarClientes())
+    const response = await axios.get('/api/clientes');
     
     if (!response?.data) return;
     padres.value = response.data.map(padre => {

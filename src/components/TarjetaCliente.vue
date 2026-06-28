@@ -1,14 +1,14 @@
 <template>
-  <div class="tarjeta-cliente card-premium" :class="{ 'opacity-50': padre.estado === 'INACTIVO' }">
+  <div class="tarjeta-cliente card-premium">
     <div class="tarjeta-cliente__header">
       <h5 class="tarjeta-cliente__title">{{ padre.nombreCompleto }}
-        <button @click="copiarLink" class="app-btn app-btn--ghost app-btn--sm" style="font-size: 0.75rem;">🔗 Copiar Link</button>
+        <button @click="copiarLink" class="tarjeta-cliente__btn-link">🔗 Copiar Link</button>
       </h5>
       <div class="tarjeta-cliente__badges">
-        <span v-if="padre.deudaTotal > 0" class="badge-premium" style="background: var(--gray-200); color: var(--gray-800); font-weight: 600;">
+        <span v-if="padre.deudaTotal > 0" class="badge-premium badge-deuda">
           Debe: ${{ formatearDinero(padre.deudaTotal) }}
         </span>
-        <span v-if="padre.saldoAbono > 0" class="badge-premium" style="background: var(--gray-200); color: var(--gray-800);">
+        <span v-if="padre.saldoAbono > 0" class="badge-premium badge-abono">
           Abono: ${{ formatearDinero(padre.saldoAbono) }}
         </span>
       </div>
@@ -26,16 +26,16 @@
       <hr class="tarjeta-cliente__divider">
       <div class="tarjeta-cliente__actions">
         <button @click="$emit('toggleCardForm', { clientId: padre.id, formType: 'abono' }); $emit('toggleDeudas', null)"
-                class="app-btn app-btn--outline app-btn--sm" style="flex:1"
+                class="tarjeta-cliente__btn-accion"
                 :disabled="padre.estado === 'INACTIVO'">💰 Abono</button>
         <button @click="toggleHistorial(); $emit('toggleDeudas', null)"
-                class="app-btn app-btn--ghost app-btn--sm" style="flex:1">📄 Historial</button>
+                class="tarjeta-cliente__btn-accion">📄 Historial</button>
         <button @click="activarModoEdicion(); $emit('toggleDeudas', null)"
-                class="app-btn app-btn--ghost app-btn--sm" style="flex:1">⚙️ Editar</button>
+                class="tarjeta-cliente__btn-accion">⚙️ Editar</button>
       </div>
       <div v-if="padre.deudaTotal > 0" class="tarjeta-cliente__deudas">
         <button @click="toggleDeudas(); $emit('toggleCardForm', { clientId: padre.id, formType: null })"
-                class="app-btn app-btn--outline app-btn--sm" style="width:100%">
+                class="tarjeta-cliente__btn-accion tarjeta-cliente__btn-full">
           {{ mostrarDeudas ? '⬆ Ocultar' : '💸 Clases por Pagar' }}
         </button>
         <div v-if="mostrarDeudas" class="tarjeta-cliente__deudas-list">
@@ -104,7 +104,29 @@ const activarModoEdicion = () => {
     props.padre.students.forEach(hijo => {
       hijo.editNombre = hijo.nombreCompleto;
       hijo.editEdad = hijo.edad;
-      hijo.editFechaNacimiento = hijo.fechaNacimiento;
+      // --- Corrección estricta de fecha ---
+      // Normaliza cualquier formato del backend a 'YYYY-MM-DD' para <input type="date">
+      let fechaRaw = hijo.fechaNacimiento;
+      let fechaOk = '';
+      if (fechaRaw) {
+        if (Array.isArray(fechaRaw) && fechaRaw.length >= 3) {
+          // Caso: [2024, 3, 15]
+          fechaOk = `${fechaRaw[0]}-${String(fechaRaw[1]).padStart(2, '0')}-${String(fechaRaw[2]).padStart(2, '0')}`;
+        } else if (typeof fechaRaw === 'string' && fechaRaw.includes('T')) {
+          // Caso: "2024-03-15T00:00:00"
+          fechaOk = fechaRaw.split('T')[0];
+        } else if (typeof fechaRaw === 'string' && fechaRaw.includes('/')) {
+          // Caso: "15/03/2024"
+          const partes = fechaRaw.split('/');
+          if (partes.length === 3 && partes[2].length === 4) {
+            fechaOk = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+          }
+        } else if (typeof fechaRaw === 'string') {
+          // Caso: ya "2024-03-15" o cualquier otro string
+          fechaOk = fechaRaw;
+        }
+      }
+      hijo.editFechaNacimiento = fechaOk;
       const mats = hijo.matriculas || [];
       hijo.editSedeIds = mats.map(m => m.sede?.id).filter(id => id != null);
       hijo.editNiveles = {};
@@ -125,15 +147,16 @@ const copiarLink = async () => {
 
 <style scoped>
 .tarjeta-cliente {
-  transition: box-shadow var(--transition-normal);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .tarjeta-cliente:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.tarjeta-cliente.opacity-50 {
-  opacity: 0.5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
 }
 
 .tarjeta-cliente__header {
@@ -142,6 +165,84 @@ const copiarLink = async () => {
   align-items: center;
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-primary);
+}
+
+/* Badge semántico: Deuda (rojo suave) */
+.badge-deuda {
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fecaca !important;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
+
+/* Badge semántico: Abono (verde suave) */
+.badge-abono {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0 !important;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
+
+/* Botón de acción outline moderno */
+.tarjeta-cliente__btn-accion {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.tarjeta-cliente__btn-accion:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.tarjeta-cliente__btn-accion:disabled {
+  cursor: not-allowed;
+}
+
+.tarjeta-cliente__btn-full {
+  width: 100%;
+}
+
+/* Botón Copiar Link — etiqueta clickeable discreta */
+.tarjeta-cliente__btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.tarjeta-cliente__btn-link:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
 }
 
 .tarjeta-cliente__title {

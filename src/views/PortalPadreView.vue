@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-4 portal-container">
+  <div class="container portal-container">
     <div v-if="cargando" class="text-center py-5">
       <div class="spinner-border text-primary mb-3" role="status">
         <span class="visually-hidden">Cargando...</span>
@@ -71,10 +71,10 @@
                   <div>
                     <div class="fw-semibold small">{{ est.nombreCompleto }}</div>
                     <div class="text-muted" style="font-size: 12px;">
-                      <span v-for="mat in (est.matriculas || []).slice(0, 1)" :key="mat.sede?.id || 0"
+                      <span v-for="mat in (est.matriculas || []).slice(0, 1)" :key="mat.id || 0"
                             class="badge rounded-pill px-2 py-1" 
                             :style="{ fontSize: '0.70rem', backgroundColor: colorDeNivel(mat.nivel), color: 'white' }">
-                        {{ mat.nivel || 'Sin nivel' }}
+                        {{ textoNivel(mat.nivel) || 'Sin nivel' }}
                       </span>
                       <span v-if="!(est.matriculas && est.matriculas.length > 0)"
                             class="badge rounded-pill px-2 py-1 bg-secondary"
@@ -83,6 +83,43 @@
                   </div>
                 </div>
               </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Últimas Clases Asistidas -->
+      <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">🏆 Últimas Clases Asistidas</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Deportista</th>
+                  <th>Fecha</th>
+                  <th>Nivel / Grupo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="ultimasClases.length === 0">
+                  <td colspan="3" class="text-center text-muted py-4">
+                    Aún no hay clases registradas para este periodo.
+                  </td>
+                </tr>
+                <tr v-for="clase in ultimasClases" :key="clase.id">
+                  <td>{{ clase.student?.nombreCompleto || clase.nombreEstudianteHistorico || '-' }}</td>
+                  <td>{{ formatearFecha(clase.fecha) }}</td>
+                  <td>
+                    <span class="badge rounded-pill px-2 py-1"
+                          :style="{ fontSize: '0.75rem', backgroundColor: colorDeNivel(clase.nivel), color: 'white' }">
+                      {{ textoNivel(clase.nivel) || 'Clase' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -191,6 +228,8 @@ const estudiantes = ref([])
 const financialLogs = ref([])
 const deudas = ref([])
 const deudaTotal = ref(0)
+const ultimasClases = ref([])
+const estilosGrupos = ref({})
 
 const logsLimitados = computed(() => {
   return financialLogs.value
@@ -215,12 +254,41 @@ function descripcionMovimiento(log) {
   return log.tipoMovimiento || 'Movimiento'
 }
 
-const EMOJI_COLOR_MAP = { '🌱': '#059669', '🔥': '#ea580c', '⭐': '#0d6efd', '💪': '#7c3aed', '⚡': '#ca8a04', '🎯': '#dc2626', '🚀': '#0891b2', '💎': '#9333ea', '🌈': '#d946ef', '🦁': '#d97706' };
+// Mapa de estilos con llaves normalizadas a minúsculas (para match case-insensitive)
+const estilosLookup = ref({})
+
+function obtenerEstiloGrupo(nombreNivel) {
+  if (!nombreNivel) return null;
+  const trimmed = nombreNivel.trim();
+  const key = trimmed.toLowerCase();
+  // Intento directo con llave normalizada (tolowercase + trim)
+  if (estilosLookup.value[key]) return estilosLookup.value[key];
+  // Fallback: si empieza con un emoji, extraer el texto y buscar normalizado
+  const partes = trimmed.split(/\s+/);
+  if (partes.length > 1) {
+    const cleanKey = partes.slice(1).join(' ').toLowerCase();
+    if (estilosLookup.value[cleanKey]) return estilosLookup.value[cleanKey];
+  }
+  return null;
+}
 
 function colorDeNivel(nivel) {
   if (!nivel) return '#6c757d';
-  const firstChar = nivel.charAt(0);
-  return EMOJI_COLOR_MAP[firstChar] || '#6c757d';
+  const estilo = obtenerEstiloGrupo(nivel);
+  return estilo?.colorHex || '#6c757d';
+}
+
+function textoNivel(nivel) {
+  if (!nivel) return 'Sin nivel';
+  const estilo = obtenerEstiloGrupo(nivel);
+  if (estilo) {
+    // Obtener nombre limpio (sin emoji que pudiera venir del dato original)
+    const nombreLimpio = nivel.startsWith(estilo.emoji)
+      ? nivel.slice(estilo.emoji.length).trim()
+      : nivel.trim();
+    return `${estilo.emoji} ${nombreLimpio}`;
+  }
+  return nivel;
 }
 
 function formatearFecha(fechaStr) {
@@ -265,11 +333,42 @@ onMounted(async () => {
   try {
     const res = await axios.get(`/api/public/portal/${token}`)
     const data = res.data
+    console.log("🔍 Datos del Portal:", data)
     padre.value = data.parent
-    estudiantes.value = data.parent?.students || []
+    const estudiantesRaw = data.parent?.students || []
     financialLogs.value = data.financialLogs || []
     deudas.value = data.deudas || []
     deudaTotal.value = data.deudaTotal || 0
+    // Enriquecer estudiantes: si un deportista no tiene matrículas, buscar su nivel
+    // desde la lista COMPLETA de asistencias del backend (sin limitar) o deudas
+    const todasLasAsistencias = [...(data.ultimasClases || []), ...(data.deudas || [])]
+    const estudiantesEnriquecidos = [];
+    for (const est of estudiantesRaw) {
+      const estEnriquecido = { ...est } // copia para no mutar el objeto crudo
+      if (!estEnriquecido.matriculas || estEnriquecido.matriculas.length === 0) {
+        const match = todasLasAsistencias.find(
+          a => (a.student?.id === est.id) || (a.nombreEstudianteHistorico === est.nombreCompleto)
+        );
+        if (match && match.nivel) {
+          estEnriquecido.matriculas = [{ id: 0, nivel: match.nivel, sede: null }];
+        }
+      }
+      estudiantesEnriquecidos.push(estEnriquecido);
+    }
+    estudiantes.value = estudiantesEnriquecidos
+
+    // Guardar diccionario de estilos y construir versión normalizada (case-insensitive)
+    estilosGrupos.value = data.estilosGrupos || {}
+    const raw = data.estilosGrupos || {};
+    const normalizados = {};
+    for (const [key, val] of Object.entries(raw)) {
+      normalizados[key.toLowerCase().trim()] = val;
+    }
+    estilosLookup.value = normalizados;
+
+    // Solo al final, limitar las últimas clases para la tabla de visualización
+    ultimasClases.value = (data.ultimasClases || []).slice(0, 3)
+
   } catch (e) {
     if (e.response && e.response.status === 404) {
       error.value = 'Enlace no encontrado o inv&aacute;lido. Verifica que el enlace sea correcto.'

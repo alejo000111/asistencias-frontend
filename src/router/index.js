@@ -78,6 +78,8 @@ router.beforeEach((to, from, next) => {
 
   // Rutas protegidas: redirigir a login si no hay token
   if (!token) {
+    // Limpiar cualquier residuo de sesión anterior
+    localStorage.clear();
     return next({ name: 'login' });
   }
 
