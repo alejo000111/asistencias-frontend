@@ -47,6 +47,14 @@
           </div>
         </div>
 
+        <!-- Indicador de carga para EMPLEADO (el watch dispara la petición) -->
+        <div v-if="cargandoEstudiantes" class="text-center py-3">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando estudiantes...</span>
+          </div>
+          <p class="text-muted small mt-1">Cargando estudiantes...</p>
+        </div>
+
         <div v-if="tipoClase === 'GRUPAL' && sedeSeleccionada" class="text-center mb-4">
           <label class="form-label fw-bold text-dark">Nivel del Grupo:</label><br>
           <div class="btn-group shadow-sm" role="group">
@@ -199,6 +207,7 @@ import { useSedes } from '@/utils/useSedes';
 const { sedes: sedesDisponibles, sedesCargadas, sedesActivas, cargarSedes } = useSedes();
 
 const students = ref([]);
+const cargandoEstudiantes = ref(false);
 const sedeSeleccionada = ref('');
 const tipoClase = ref('GRUPAL');
 const nivelClase = ref('');
@@ -209,13 +218,15 @@ const gruposSedeSeleccionada = computed(() => {
   return sede?.grupos || [];
 });
 
-// Al cambiar de sede, auto-seleccionar tipo GRUPAL y el primer grupo disponible
+// ============================================================
+// WATCH UI: al cambiar sede, auto-seleccionar tipo GRUPAL
+// y el primer grupo disponible
+// ============================================================
 watch(sedeSeleccionada, (nuevoId) => {
   tipoClase.value = 'GRUPAL';
   if (nuevoId) {
     const sede = sedesDisponibles.value.find(s => s.id === nuevoId);
     if (sede && sede.grupos && sede.grupos.length > 0) {
-      // Buscar el primer grupo con nombre valido (no vacio)
       const primerGrupoValido = sede.grupos.find(g => g && g.nombre && g.nombre.trim() !== '');
       nivelClase.value = primerGrupoValido ? primerGrupoValido.nombre : '';
     } else {
@@ -226,15 +237,98 @@ watch(sedeSeleccionada, (nuevoId) => {
   }
 });
 
+// ============================================================
+// WATCH REACTIVO (Opción 1): Dispara petición HTTP cada vez
+// que el usuario cambia sede, nivel o tipo de clase.
+// EMPLEADO → GET /api/clientes/estudiantes?sedeId=X&nivel=Y
+// ADMIN    → usa carga completa al montar (cargarEstudiantesAdmin)
+// ============================================================
+watch([sedeSeleccionada, nivelClase, tipoClase], async ([sedeId, nivel, tipo]) => {
+  const rol = localStorage.getItem('authRole');
+  const esAdmin = rol === 'ADMIN' || rol === 'ROLE_ADMIN';
+
+  // ADMIN: no usa este watch (carga completa al montar)
+  if (esAdmin) return;
+
+  if (!sedeId) {
+    students.value = [];
+    return;
+  }
+
+  cargandoEstudiantes.value = true;
+  try {
+    const params = { sedeId };
+    if (tipo === 'GRUPAL' && nivel) {
+      params.nivel = nivel;
+    }
+    const response = await axios.get('/api/clientes/estudiantes', { params });
+    if (!response?.data) { students.value = []; return; }
+
+    students.value = response.data
+      .filter(hijo => hijo.estado === 'ACTIVO')
+      .map(hijo => ({
+        ...hijo,
+        presente: false,
+        precioPersonalizado: null
+      }))
+      .sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+  } catch (error) {
+    console.error('Error cargando estudiantes:', error);
+    students.value = [];
+  } finally {
+    cargandoEstudiantes.value = false;
+  }
+});
+
+// ============================================================
+// ADMIN: carga completa de todos los estudiantes al montar
+// (con datos financieros desde /api/finanzas/padres)
+// ============================================================
+const cargarEstudiantesAdmin = async () => {
+  const rol = localStorage.getItem('authRole');
+  if (rol !== 'ADMIN' && rol !== 'ROLE_ADMIN') return;
+
+  try {
+    const response = await axios.get('/api/finanzas/padres');
+    if (!response?.data) return;
+    const allStudents = [];
+    response.data.forEach(padre => {
+      if ((padre.estado === 'ACTIVO' || !padre.estado) && padre.students) {
+        padre.students.forEach(hijo => {
+          if (hijo.estado === 'ACTIVO') {
+            allStudents.push({
+              ...hijo,
+              presente: false,
+              precioPersonalizado: null
+            });
+          }
+        });
+      }
+    });
+    students.value = allStudents.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
+  } catch (error) {
+    console.error('Error cargando estudiantes admin:', error);
+  }
+};
+
+// ============================================================
+// COMPUTED: filtro en memoria (solo ADMIN filtra aquí;
+// EMPLEADO ya recibe datos filtrados desde el backend)
+// ============================================================
 const estudiantesFiltrados = computed(() => {
+  const rol = localStorage.getItem('authRole');
+  const esAdmin = rol === 'ADMIN' || rol === 'ROLE_ADMIN';
+
+  // EMPLEADO: el backend ya filtró por sede y nivel
+  if (!esAdmin) return students.value;
+
+  // ADMIN: filtrar en memoria sobre la carga completa
   let filtrados = students.value;
-  // Filtrar por sede si hay una seleccionada
   if (sedeSeleccionada.value) {
     filtrados = filtrados.filter(s =>
       s.matriculas && s.matriculas.some(m => m.sede && m.sede.id === sedeSeleccionada.value)
     );
   }
-  // Filtrar por grupo/nivel si hay seleccionado (compatible con y sin emoji)
   if (tipoClase.value === 'GRUPAL' && nivelClase.value) {
     filtrados = filtrados.filter(s =>
       s.matriculas && s.matriculas.some(m => m.nivel && m.nivel.includes(nivelClase.value))
@@ -245,47 +339,6 @@ const estudiantesFiltrados = computed(() => {
 
 const actualizarPrecioInput = (event, estudiante) => {
   actualizarMontoInput(event, estudiante, 'precioPersonalizado');
-};
-
-const cargarEstudiantes = async () => {
-  try {
-    const rol = localStorage.getItem('authRole');
-    let allStudents = [];
-
-    if (rol === 'ADMIN' || rol === 'ROLE_ADMIN') {
-      // ADMIN: obtiene padres con datos financieros y estudiantes anidados
-      const response = await axios.get('/api/finanzas/padres');
-      if (!response?.data) return;
-      response.data.forEach(padre => {
-        if ((padre.estado === 'ACTIVO' || !padre.estado) && padre.students) {
-          padre.students.forEach(hijo => {
-            if (hijo.estado === 'ACTIVO') {
-              allStudents.push({
-                ...hijo,
-                presente: false,
-                precioPersonalizado: null
-              });
-            }
-          });
-        }
-      });
-    } else {
-      // EMPLEADO: usa endpoint /api/clientes/estudiantes (filtrado por sede)
-      const response = await axios.get('/api/clientes/estudiantes');
-      if (!response?.data) return;
-      allStudents = response.data
-        .filter(hijo => hijo.estado === 'ACTIVO')
-        .map(hijo => ({
-          ...hijo,
-          presente: false,
-          precioPersonalizado: null
-        }));
-    }
-
-    students.value = allStudents.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
-  } catch (error) {
-    console.error("Error cargando estudiantes:", error);
-  }
 };
 
 const cargarSedesYPreseleccionar = async () => {
@@ -360,7 +413,7 @@ const registrarAsistencias = async () => {
 };
 
 onMounted(() => {
-  cargarEstudiantes();
+  cargarEstudiantesAdmin();
   cargarSedesYPreseleccionar();
 });
 </script>
