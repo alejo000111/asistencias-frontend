@@ -28,7 +28,7 @@
           <div class="card border-0 shadow-sm h-100">
             <div class="card-body text-center p-3">
               <div class="text-muted small mb-1">Total a Pagar</div>                <div class="fs-3 fw-bold">
-                {{ formatearDineroPortal(totalAPagar) }}
+                ${{ formatearDinero(totalAPagar) }}
               </div>
             </div>
           </div>
@@ -38,7 +38,7 @@
             <div class="card-body text-center p-3">
               <div class="text-muted small mb-1">Saldo a Favor (Abono)</div>
               <div class="fs-3 fw-bold text-success">
-                {{ formatearDineroPortal(padre.saldoAbono || 0) }}
+                ${{ formatearDinero(padre.saldoAbono || 0) }}
               </div>
             </div>
           </div>
@@ -149,21 +149,21 @@
                     <td>{{ deuda.student?.nombreCompleto || deuda.nombreEstudianteHistorico || '-' }}</td>
                     <td>{{ formatearFecha(deuda.fecha) }}</td>
                     <td>{{ descripcionNivel(deuda.nivel) }}</td>
-                    <td class="text-end fw-semibold">{{ formatearDineroPortal(deuda.precioCobrado) }}</td>
+                    <td class="text-end fw-semibold">${{ formatearDinero(deuda.precioCobrado) }}</td>
                   </tr>
                 </tbody>
                 <tfoot class="table-light">
                   <tr>
                     <td colspan="3" class="text-end text-muted">Subtotal de clases:</td>
-                    <td class="text-end fw-semibold">{{ formatearDineroPortal(subtotalDeudas) }}</td>
+                    <td class="text-end fw-semibold">${{ formatearDinero(subtotalDeudas) }}</td>
                   </tr>
                   <tr v-if="Number(padre.saldoAbono || 0) > 0">
                     <td colspan="3" class="text-end text-muted">Menos saldo a favor (Abono):</td>
-                    <td class="text-end text-success fw-semibold">-{{ formatearDineroPortal(padre.saldoAbono || 0) }}</td>
+                    <td class="text-end text-success fw-semibold">-${{ formatearDinero(padre.saldoAbono || 0) }}</td>
                   </tr>
                   <tr class="fw-bold">
                     <td colspan="3" class="text-end fs-5 text-dark">Total a pagar:</td>
-                    <td class="text-end fs-5 text-dark fw-bold">{{ formatearDineroPortal(totalAPagar) }}</td>
+                    <td class="text-end fs-5 text-dark fw-bold">${{ formatearDinero(totalAPagar) }}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -196,7 +196,7 @@
                     <td>{{ formatearFecha(log.fecha) }}</td>
                     <td>{{ descripcionMovimiento(log) }}</td>
                     <td class="text-end fw-semibold">
-                      {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '+' : '-' }}{{ formatearDineroPortal(log.monto) }}
+                      {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '+' : '-' }}${{ formatearDinero(log.monto) }}
                     </td>
                   </tr>
                 </tbody>
@@ -218,6 +218,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { formatearFecha, formatearDinero } from '@/utils/formatters'
 
 const route = useRoute()
 
@@ -229,8 +230,6 @@ const financialLogs = ref([])
 const deudas = ref([])
 const deudaTotal = ref(0)
 const ultimasClases = ref([])
-const estilosGrupos = ref({})
-
 const logsLimitados = computed(() => {
   return financialLogs.value
     .filter(log => log.tipoMovimiento === 'INGRESO_ABONO')
@@ -291,29 +290,6 @@ function textoNivel(nivel) {
   return nivel;
 }
 
-function formatearFecha(fechaStr) {
-  if (!fechaStr) return '-'
-  // Soporte para arrays de fecha de Java [yyyy, MM, dd]
-  if (Array.isArray(fechaStr)) {
-    const f = new Date(Date.UTC(fechaStr[0], fechaStr[1] - 1, fechaStr[2]))
-    return f.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
-  }
-  const fecha = new Date(fechaStr + (fechaStr.includes('T') ? '' : 'T00:00:00'))
-  return fecha.toLocaleDateString('es-CO', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-function formatearDineroPortal(valor) {
-  if (valor === null || valor === undefined) return '$0'
-  const num = Number(valor)
-  return '$' + num.toLocaleString('es-CO', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  })
-}
 
 function descripcionNivel(nivel) {
   if (!nivel) return 'Clase'
@@ -358,7 +334,6 @@ onMounted(async () => {
     estudiantes.value = estudiantesEnriquecidos
 
     // Guardar diccionario de estilos y construir versión normalizada (case-insensitive)
-    estilosGrupos.value = data.estilosGrupos || {}
     const raw = data.estilosGrupos || {};
     const normalizados = {};
     for (const [key, val] of Object.entries(raw)) {

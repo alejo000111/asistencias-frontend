@@ -58,7 +58,7 @@
       <!-- Usuarios no autenticados (login, portal), ADMIN, o sedes cargadas -->
       <template v-if="!autenticado || esAdmin || sedesCargadas">
         <!-- Bloqueo por sede inactiva (solo EMPLEADO autenticado) -->
-        <div v-if="autenticado && !esAdmin && sedesBloqueadas" class="card-premium" style="margin-top: var(--space-8); text-align: center; padding: var(--space-12) var(--space-6);">
+        <div v-if="autenticado && !esAdmin && sedesBloqueadasForEmp" class="card-premium" style="margin-top: var(--space-8); text-align: center; padding: var(--space-12) var(--space-6);">
           <div style="font-size: 3rem; margin-bottom: var(--space-4);">🚫</div>
           <h3 style="color: var(--orange-500); margin-bottom: var(--space-3);">Sede Deshabilitada</h3>
           <p style="max-width: 480px; margin: 0 auto; color: var(--text-secondary);">
@@ -106,27 +106,16 @@ const esPortal = ref(false);
 const autenticado = ref(false);
 const esAdmin = ref(false);
 const nombreUsuario = ref('');
-const sedesCargadas = ref(false);
-const sedesDisponibles = ref([]);
 
-// Computed: todas las sedes del empleado están inactivas
-const sedesBloqueadas = computed(() => {
+import { useSedes } from '@/utils/useSedes';
+const { sedes: sedesDisponibles, sedesCargadas, sedesBloqueadasForEmp, cargarSedes } = useSedes();
+
+// Sedes bloqueadas: solo para EMPLEADO; ADMIN siempre pasa
+const sedesBloqueadasForEmpForEmp = computed(() => {
   if (esAdmin.value) return false;
   if (!autenticado.value) return false;
-  return sedesDisponibles.value.length > 0 && sedesDisponibles.value.every(s => s.activa === false);
+  return sedesBloqueadasForEmp.value;
 });
-
-// Cargar sedes al montar para verificar estado de actividad
-const cargarSedes = async () => {
-  try {
-    const res = await axios.get('/api/sedes');
-    sedesDisponibles.value = res.data;
-  } catch (e) {
-    console.error('Error al cargar sedes para bloqueo:', e);
-  } finally {
-    sedesCargadas.value = true;
-  }
-};
 
 function comprobarAdmin(rol) {
   return rol === 'ADMIN' || rol === 'ROLE_ADMIN';
@@ -144,6 +133,8 @@ watch(() => route.path, sincronizarSesion, { immediate: true });
 watch(autenticado, (val) => {
   if (val && !esAdmin.value) {
     cargarSedes();
+  } else if (esAdmin.value) {
+    sedesCargadas.value = true;
   }
 }, { immediate: true });
 

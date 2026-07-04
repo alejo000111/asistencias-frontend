@@ -194,15 +194,15 @@ import axios from 'axios';
 import { formatearMontoInput, actualizarMontoInput } from '@/utils/formatters';
 import AppButton from '@/components/ui/AppButton.vue';
 
+import { useSedes } from '@/utils/useSedes';
+
+const { sedes: sedesDisponibles, sedesCargadas, sedesActivas, cargarSedes } = useSedes();
+
 const students = ref([]);
-const sedesDisponibles = ref([]);
-const sedesCargadas = ref(false);
 const sedeSeleccionada = ref('');
 const tipoClase = ref('GRUPAL');
 const nivelClase = ref('');
 const fechaAsistencia = ref('');
-
-const sedesActivas = computed(() => sedesDisponibles.value.filter(s => s.activa !== false));
 
 const gruposSedeSeleccionada = computed(() => {
   const sede = sedesDisponibles.value.find(s => s.id === sedeSeleccionada.value);
@@ -288,18 +288,12 @@ const cargarEstudiantes = async () => {
   }
 };
 
-const cargarSedes = async () => {
-  try {
-    const res = await axios.get('/api/sedes');
-    sedesDisponibles.value = res.data;
-    sedesCargadas.value = true;
-    // Auto-seleccionar "Sede Principal" por defecto si existe
-    const sedePrincipal = res.data.find(s => s.nombre === 'Sede Principal');
-    if (sedePrincipal) {
-      sedeSeleccionada.value = sedePrincipal.id;
-    }
-  } catch (e) {
-    console.error('Error al cargar sedes:', e);
+const cargarSedesYPreseleccionar = async () => {
+  await cargarSedes();
+  // Auto-seleccionar "Sede Principal" por defecto si existe
+  const sedePrincipal = sedesDisponibles.value.find(s => s.nombre === 'Sede Principal');
+  if (sedePrincipal) {
+    sedeSeleccionada.value = sedePrincipal.id;
   }
 };
 
@@ -367,7 +361,7 @@ const registrarAsistencias = async () => {
 
 onMounted(() => {
   cargarEstudiantes();
-  cargarSedes();
+  cargarSedesYPreseleccionar();
 });
 </script>
 

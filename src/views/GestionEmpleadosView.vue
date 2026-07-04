@@ -108,7 +108,10 @@ import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
 const empleados = ref([]);
-const sedesDisponibles = ref([]);
+import { useSedes } from '@/utils/useSedes';
+
+const { sedes: sedesDisponibles, cargarSedes } = useSedes();
+
 const mostrarFormulario = ref(false);
 const editandoId = ref(null);
 const formUsername = ref('');
@@ -125,14 +128,7 @@ const cargarEmpleados = async () => {
   }
 };
 
-const cargarSedes = async () => {
-  try {
-    const res = await axios.get('/api/sedes');
-    sedesDisponibles.value = res.data;
-  } catch (e) {
-    console.error(e);
-  }
-};
+
 
 const abrirNuevo = () => {
   editandoId.value = null;

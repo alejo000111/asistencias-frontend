@@ -59,7 +59,10 @@ import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 
 const padres = ref([]);
-const sedesDisponibles = ref([]);
+import { useSedes } from '@/utils/useSedes';
+
+const { sedes: sedesDisponibles, cargarSedes } = useSedes();
+
 const sedeIdsSeleccionados = ref([]);
 const nivelesPorSede = ref({});
 const formPadre = ref({ nombre: '', apellido: '', telefono: '' });
@@ -132,12 +135,7 @@ const cargarPadres = async () => {
   } catch (error) { console.error(error); }
 };
 
-const cargarSedes = async () => {
-  try {
-    const res = await axios.get('/api/sedes');
-    sedesDisponibles.value = res.data;
-  } catch (error) { console.error(error); }
-};
+
 
 const enviarPadre = async () => {
   if (!formPadre.value.nombre || !formPadre.value.apellido || !formPadre.value.telefono) { alert("⚠️ Completa todos los campos del padre."); return; }    try {

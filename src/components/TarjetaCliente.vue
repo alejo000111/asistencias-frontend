@@ -54,7 +54,7 @@
     <div v-show="activeFormType" class="tarjeta-cliente__panel">
       <AbonoForm v-if="activeFormType === 'abono'" :padre="padre" @recargar="$emit('recargar')" @cerrar="$emit('toggleCardForm', { clientId: padre.id, formType: null })" />
       <HistorialForm v-if="activeFormType === 'historial'" :parent-id="padre.id" @recargar="$emit('recargar')" />
-      <EditForm v-if="activeFormType === 'edit'" :padre="padre" :sedes="sedes" @recargar="$emit('recargar')" @cancelar="cancelarEdicion" />
+      <EditForm v-if="activeFormType === 'edit'" :padre="editPadre" :sedes="sedes" @recargar="$emit('recargar')" @cancelar="cancelarEdicion" />
     </div>
   </div>
 </template>
@@ -70,17 +70,15 @@ import EditForm from './EditForm.vue';
 const props = defineProps(['padre', 'activeFormType', 'activeDeudasId']);
 const emit = defineEmits(['toggleCardForm', 'toggleDeudas', 'clienteActualizado', 'recargar']);
 
-const sedes = ref([]);
+import { useSedes } from '@/utils/useSedes';
+const { sedes, cargarSedes } = useSedes();
+
+const editPadre = ref(null);
 const listaDeudas = ref([]);
 
 const formatearMatriculas = (matriculas) => {
   if (!matriculas || matriculas.length === 0) return '';
   return matriculas.map(m => (m.sede?.nombre || '?') + ' (' + m.nivel + ')').join(' | ');
-};
-
-const cargarSedes = async () => {
-  try { const res = await axios.get('/api/sedes'); sedes.value = res.data; }
-  catch (e) { console.error('Error al cargar sedes:', e); }
 };
 
 const mostrarDeudas = computed(() => props.activeDeudasId === props.padre.id);
@@ -97,32 +95,29 @@ const toggleHistorial = () => emit('toggleCardForm', { clientId: props.padre.id,
 
 const activarModoEdicion = () => {
   cargarSedes();
-  props.padre.editNombre = props.padre.nombreCompleto;
-  props.padre.editTelefono = props.padre.telefono;
-  props.padre.editEstado = props.padre.estado || 'ACTIVO';
-  if (props.padre.students) {
-    props.padre.students.forEach(hijo => {
+  // Crear copia local profunda para no mutar el prop
+  editPadre.value = JSON.parse(JSON.stringify(props.padre));
+  editPadre.value.editNombre = props.padre.nombreCompleto;
+  editPadre.value.editTelefono = props.padre.telefono;
+  editPadre.value.editEstado = props.padre.estado || 'ACTIVO';
+  if (editPadre.value.students) {
+    editPadre.value.students.forEach(hijo => {
       hijo.editNombre = hijo.nombreCompleto;
       hijo.editEdad = hijo.edad;
       // --- Corrección estricta de fecha ---
-      // Normaliza cualquier formato del backend a 'YYYY-MM-DD' para <input type="date">
       let fechaRaw = hijo.fechaNacimiento;
       let fechaOk = '';
       if (fechaRaw) {
         if (Array.isArray(fechaRaw) && fechaRaw.length >= 3) {
-          // Caso: [2024, 3, 15]
           fechaOk = `${fechaRaw[0]}-${String(fechaRaw[1]).padStart(2, '0')}-${String(fechaRaw[2]).padStart(2, '0')}`;
         } else if (typeof fechaRaw === 'string' && fechaRaw.includes('T')) {
-          // Caso: "2024-03-15T00:00:00"
           fechaOk = fechaRaw.split('T')[0];
         } else if (typeof fechaRaw === 'string' && fechaRaw.includes('/')) {
-          // Caso: "15/03/2024"
           const partes = fechaRaw.split('/');
           if (partes.length === 3 && partes[2].length === 4) {
             fechaOk = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
           }
         } else if (typeof fechaRaw === 'string') {
-          // Caso: ya "2024-03-15" o cualquier otro string
           fechaOk = fechaRaw;
         }
       }

@@ -292,8 +292,10 @@ import axios from 'axios';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppInput from '@/components/ui/AppInput.vue';
 
+import { useSedes } from '@/utils/useSedes';
+
 // ——— Estado de sedes ———
-const sedes = ref([]);
+const { sedes, cargarSedes } = useSedes();
 
 // ——— Control de edición ———
 const sedeIdEnEdicion = ref(null); // null = nada, -1 = nueva, >0 = editando
@@ -317,14 +319,7 @@ const ultimoGrupoTieneNombre = computed(() => {
 // ================================================================
 //  CARGAR SEDES
 // ================================================================
-const cargarSedes = async () => {
-  try {
-    const res = await axios.get('/api/sedes');
-    sedes.value = res.data;
-  } catch (e) {
-    console.error(e);
-  }
-};
+
 
 // ================================================================
 //  LIMPIAR ERRORES

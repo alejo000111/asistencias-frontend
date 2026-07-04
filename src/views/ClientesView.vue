@@ -95,8 +95,11 @@ import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 import TarjetaCliente from '../components/TarjetaCliente.vue';
 
+import { useSedes } from '@/utils/useSedes';
+
+const { sedes, cargarSedes } = useSedes();
+
 const padres = ref([]);
-const sedes = ref([]);
 const pestanaActual = ref('ACTIVOS');
 const textoBusqueda = ref('');
 const filtroSedeId = ref('');
@@ -165,12 +168,7 @@ const padresInactivos = computed(() => padresFiltrados.value.filter(p => p.estad
 const padresActivosConDeuda = computed(() => padresActivos.value.filter(p => p.deudaTotal > 0));
 const padresActivosAlDia = computed(() => padresActivos.value.filter(p => p.deudaTotal === 0));
 
-const cargarSedes = async () => {
-  try {
-    const res = await axios.get('/api/sedes');
-    sedes.value = res.data;
-  } catch (e) { console.error(e); }
-};
+
 
 const cargarPadres = async () => {
   try {

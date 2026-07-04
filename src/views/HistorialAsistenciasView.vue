@@ -50,9 +50,12 @@ const tarjetaAbiertaId = ref(null);
 
 const searchQuery = ref('');
 const rawAsistencias = ref([]);
+const precios = ref({ grupal: 40000, personalizada: 50000 });
 const EMOJI_COLOR_MAP = { '🌱': '#059669', '🔥': '#ea580c', '⭐': '#0d6efd', '💪': '#7c3aed', '⚡': '#ca8a04', '🎯': '#dc2626', '🚀': '#0891b2', '💎': '#9333ea', '🌈': '#d946ef', '🦁': '#d97706' };
 
-const sedes = ref([]);
+import { useSedes } from '@/utils/useSedes';
+
+const { sedes, cargarSedes } = useSedes();
 
 const paginaActual = ref(1);
 const itemsPorPagina = 9;
@@ -125,9 +128,10 @@ const asistenciasAgrupadas = computed(() => {
       };
     }
 
-    const PRECIO_GRUPAL = 40000, PRECIO_PERSONALIZADA = 50000;
+    const pGrupal = Number(precios.value.grupal || 40000);
+    const pPersonalizada = Number(precios.value.personalizada || 50000);
     const precio = Number(a.precioCobrado);
-    const esPrecioEspecial = ![PRECIO_GRUPAL, PRECIO_PERSONALIZADA].includes(precio);
+    const esPrecioEspecial = ![pGrupal, pPersonalizada].includes(precio);
 
     grupos[key].estudiantes.push({
       idAsistencia: a.id,
@@ -158,25 +162,16 @@ watch(searchQuery, () => { paginaActual.value = 1; });
 const cargarAsistencias = async () => {
   try {
     const response = await axios.get('/api/finanzas/historial-asistencias');
-    let datos = response.data;
-
-    // Defensa en profundidad: si el usuario es EMPLEADO, filtramos en frontend
-    // por si el backend no hubiera aplicado el filtro (cache, error, etc.)
-    const rol = localStorage.getItem('authRole');
-    if (rol === 'EMPLEADO') {
-      const sedesPermitidas = (() => {
-        try { return JSON.parse(localStorage.getItem('authSedes') || '[]'); }
-        catch { return []; }
-      })();
-      if (sedesPermitidas.length > 0) {
-        datos = datos.filter(a => sedesPermitidas.includes(a.sedeId));
-      } else {
-        datos = []; // EMPLEADO sin sedes → no ve nada (consistente con backend)
-      }
-    }
-
-    rawAsistencias.value = datos;
+    // El backend ya filtra por sede para EMPLEADO (findBySedeIdIn)
+    rawAsistencias.value = response.data;
   } catch (error) { console.error("Error:", error); }
+};
+
+const cargarPrecios = async () => {
+  try {
+    const res = await axios.get('/api/public/precios');
+    precios.value = res.data;
+  } catch (e) { console.error('Error cargando precios:', e); }
 };
 
 const eliminarRegistro = async (idAsistencia) => {
@@ -197,12 +192,7 @@ const eliminarListaCompleta = async (grupo) => {
   } catch (error) { alert("Error al eliminar la lista."); }
 };
 
-const cargarSedes = async () => {
-  try {
-    const res = await axios.get('/api/sedes');
-    sedes.value = res.data;
-  } catch (e) { console.error('Error cargando sedes:', e); }
-};
 
-onMounted(() => { cargarAsistencias(); cargarSedes(); });
+
+onMounted(() => { cargarAsistencias(); cargarSedes(); cargarPrecios(); });
 </script>
