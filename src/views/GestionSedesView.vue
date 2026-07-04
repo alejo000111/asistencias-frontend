@@ -10,7 +10,7 @@
     <!-- ============================================================
          FORMULARIO NUEVA SEDE (arriba de la tabla)
          ============================================================ -->
-    <div v-if="sedeIdEnEdicion === -1" class="card shadow-sm border-success mb-4">
+    <div v-if="sedeIdEnEdicion === -1" class="card shadow-sm mb-4">
       <div class="card-body">
         <h5 class="card-title mb-3 text-success">🏗️ Nueva Sede</h5>
 
@@ -87,7 +87,7 @@
           <div class="mt-2">
             <button
               type="button"
-              class="btn btn-outline-primary btn-sm"
+              class="btn btn-outline-primary"
               :disabled="!ultimoGrupoTieneNombre"
               @click.prevent="agregarGrupo"
             >
@@ -101,7 +101,7 @@
         </div>
 
         <div class="d-flex gap-2 mt-3 justify-content-end">
-          <AppButton variant="primary" size="lg" @click="guardar">💾 Guardar</AppButton>
+          <AppButton variant="outline" size="lg" @click="guardar">💾 Guardar</AppButton>
           <AppButton variant="outline" size="lg" @click="cancelar">✖ Cancelar</AppButton>
         </div>
       </div>
@@ -129,8 +129,8 @@
                 <td class="text-muted">{{ sede.id }}</td>
                 <td class="fw-bold">{{ sede.nombre }}</td>
                 <td>
-                  <span v-if="sede.activa === false" class="badge bg-secondary">📦 ARCHIVADA</span>
-                  <span v-else class="badge bg-success">✅ Activa</span>
+                  <span v-if="sede.activa === false" class="badge bg-secondary fs-6 px-3 py-2">📦 ARCHIVADA</span>
+                  <span v-else class="badge bg-success fs-6 px-3 py-2">✅ Activa</span>
                 </td>
                 <td>
                   <span v-if="!sede.grupos || sede.grupos.length === 0" class="text-muted small">—</span>
@@ -138,8 +138,8 @@
                     <span
                       v-for="(g, gIdx) in sede.grupos"
                       :key="gIdx"
-                      class="badge text-white fw-bold shadow-sm"
-                      :style="{ backgroundColor: g.colorHex || '#6c757d', fontSize: '0.7rem' }"
+                      class="badge text-white fw-bold shadow-sm fs-6 px-3 py-2"
+                      :style="{ backgroundColor: g.colorHex || '#6c757d' }"
                     >{{ g.emoji ? g.emoji + ' ' : '' }}{{ g.nombre }}</span>
                   </span>
                 </td>
@@ -148,12 +148,12 @@
                     <div class="d-flex gap-2 justify-content-center">
                       <AppButton
                         variant="outline"
-                        size="sm"
+                        size="md"
                         @click="editar(sede)"
                       >✏️</AppButton>
                       <AppButton
                         variant="danger"
-                        size="sm"
+                        size="md"
                         @click="eliminar(sede)"
                       >🗑️</AppButton>
                     </div>
@@ -250,7 +250,7 @@
                       <div class="mt-2">
                         <button
                           type="button"
-                          class="btn btn-outline-primary btn-sm"
+                          class="btn btn-outline-primary"
                           :disabled="!ultimoGrupoTieneNombre"
                           @click.prevent="agregarGrupo"
                         >
@@ -264,7 +264,7 @@
                     </div>
 
                     <div class="d-flex gap-2 mt-3 justify-content-end">
-                      <AppButton variant="primary" size="md" @click="guardar">
+                      <AppButton variant="outline" size="md" @click="guardar">
                         💾 Guardar Cambios
                       </AppButton>
                       <AppButton variant="outline" size="md" @click="cancelar">

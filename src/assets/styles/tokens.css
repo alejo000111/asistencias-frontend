@@ -99,26 +99,38 @@
 }
 
 /* ============================================================
-   🌙 DARK MODE
+   🌙 DARK MODE  —  SaaS Premium Dark Palette v2
+   Fondo base #121212, tarjetas slate-800 (#1f2937) para elevación
+   Textos principales #f8fafc, bordes semitransparentes elegantes
    ============================================================ */
 [data-theme="dark"] {
-  --bg-primary:       var(--gray-900);
-  --bg-secondary:     var(--gray-800);
-  --bg-tertiary:      var(--gray-700);
-  --bg-inverse:       var(--color-white);
+  /* ——— Fondos ——— */
+  --bg-primary:       #121212;
+  --bg-secondary:     #151518;
+  --bg-tertiary:      #1a1a23;
+  --bg-inverse:       var(--gray-50);
 
-  --text-primary:     var(--gray-50);
-  --text-secondary:   var(--gray-400);
-  --text-tertiary:    var(--gray-500);
-  --text-inverse:     var(--gray-900);
+  /* ——— Textos ——— */
+  --text-primary:     #f8fafc;
+  --text-secondary:   #94a3b8;
+  --text-tertiary:    #64748b;
+  --text-inverse:     #121212;
 
-  --border-primary:   var(--gray-700);
-  --border-secondary: var(--gray-800);
+  /* ——— Bordes sutiles (blanco 10% / 8%) ——— */
+  --border-primary:   rgba(255, 255, 255, 0.10);
+  --border-secondary: rgba(255, 255, 255, 0.06);
 
-  --navbar-bg:        var(--gray-950);
-  --card-bg:          var(--gray-800);
+  /* ——— Sombras oscuras (más densas) ——— */
+  --shadow-sm:   0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md:   0 4px 6px -1px rgba(0, 0, 0, 0.40), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+  --shadow-lg:   0 10px 15px -3px rgba(0, 0, 0, 0.45), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
+  --shadow-xl:   0 20px 25px -5px rgba(0, 0, 0, 0.50), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+
+  /* ——— Componentes ——— */
+  --navbar-bg:        #0c0c0f;
+  --card-bg:          #1f2937;
   --card-border:      var(--border-primary);
-  --input-bg:         var(--gray-800);
-  --input-border:     var(--border-primary);
-  --input-placeholder: var(--gray-500);
+  --input-bg:         #1a1a23;
+  --input-border:     rgba(255, 255, 255, 0.10);
+  --input-placeholder: #475569;
 }

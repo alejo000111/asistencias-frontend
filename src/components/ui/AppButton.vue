@@ -7,7 +7,7 @@
     @click="$emit('click', $event)"
   >
     <span v-if="loading" class="app-btn__spinner" />
-    <span v-else-if="icon && !$slots.default" class="app-btn__icon">{{ icon }}</span>
+    <span v-if="icon && !loading" class="app-btn__icon">{{ icon }}</span>
     <span v-if="$slots.default || (!icon && !loading)" class="app-btn__text">
       <slot />
     </span>
@@ -25,7 +25,7 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: v => ['primary', 'secondary', 'outline', 'ghost', 'danger'].includes(v)
+    validator: v => ['primary', 'secondary', 'outline', 'ghost', 'danger', 'success'].includes(v)
   },
   /* Tamaños */
   size: {
@@ -190,6 +190,25 @@ const btnClasses = computed(() => [
 
 [data-theme="dark"] .app-btn--ghost:hover:not(:disabled) {
   background: var(--gray-800);
+}
+
+/* ——— SUCCESS (Verde semántico) ——— */
+.app-btn--success {
+  background: var(--color-success);
+  color: var(--color-white);
+  border-color: var(--color-success);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-btn--success:hover:not(:disabled) {
+  background: #15803d;
+  border-color: #15803d;
+  box-shadow: var(--shadow-md);
+}
+
+.app-btn--success:active:not(:disabled) {
+  background: #166534;
+  transform: translateY(0.5px);
 }
 
 /* ——— DANGER ——— */

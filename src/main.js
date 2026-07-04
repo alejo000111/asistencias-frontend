@@ -5,7 +5,30 @@ import axios from 'axios'
 import App from './App.vue'
 import router from './router'
 
-axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+// ============================================================
+// 🎯 DETECCIÓN AUTOMÁTICA DE ENTORNO — Zero-Manual-Changes
+// ============================================================
+//
+// En desarrollo local (npm run dev → import.meta.env.DEV === true):
+//   → NO se configura baseURL.
+//   → Axios usa rutas relativas:  GET /api/auth/login
+//   → Vite proxy (vite.config.js) las redirige a localhost:8080.
+//   → Sin CORS porque todo pasa por el mismo origen (localhost:5173).
+//
+// En producción o preview (npm run build → import.meta.env.PROD === true):
+//   → Se lee VITE_API_URL desde .env.production o dashboard de Vercel.
+//   → Axios apunta directamente al backend en Render.
+//   → CORS se maneja desde SecurityConfig.java (backend).
+//
+// Variables de entorno:
+//   .env.development  → vacío (usa proxy de Vite)
+//   .env.production   → VITE_API_URL=https://<app>.onrender.com
+//   Dashboard Vercel  → VITE_API_URL distinta por Target (Production / Preview)
+// ============================================================
+
+if (import.meta.env.PROD && import.meta.env.VITE_API_URL) {
+  axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+}
 
 // --- Interceptor de PETICIONES: inyectar token JWT ---
 axios.interceptors.request.use(

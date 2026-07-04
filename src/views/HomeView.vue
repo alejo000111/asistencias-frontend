@@ -31,16 +31,16 @@
               <input type="radio" class="btn-check" id="grupal" value="GRUPAL" v-model="tipoClase">
               <label class="btn px-4 fw-bold transition-all border" for="grupal"
                      :style="{
-                       backgroundColor: tipoClase === 'GRUPAL' ? 'var(--orange-500)' : '#ffffff',
-                       color: tipoClase === 'GRUPAL' ? '#ffffff' : 'var(--gray-700)',
+                       backgroundColor: tipoClase === 'GRUPAL' ? 'var(--orange-500)' : 'var(--bg-tertiary)',
+                       color: tipoClase === 'GRUPAL' ? '#ffffff' : 'var(--text-primary)',
                        borderColor: tipoClase === 'GRUPAL' ? 'var(--orange-500)' : 'var(--border-primary)'
                      }">👥 Grupal</label>
 
               <input type="radio" class="btn-check" id="personalizada" value="PERSONALIZADA" v-model="tipoClase">
               <label class="btn px-4 fw-bold transition-all border" for="personalizada"
                      :style="{
-                       backgroundColor: tipoClase === 'PERSONALIZADA' ? 'var(--orange-500)' : '#ffffff',
-                       color: tipoClase === 'PERSONALIZADA' ? '#ffffff' : 'var(--gray-700)',
+                       backgroundColor: tipoClase === 'PERSONALIZADA' ? 'var(--orange-500)' : 'var(--bg-tertiary)',
+                       color: tipoClase === 'PERSONALIZADA' ? '#ffffff' : 'var(--text-primary)',
                        borderColor: tipoClase === 'PERSONALIZADA' ? 'var(--orange-500)' : 'var(--border-primary)'
                      }">👤 Personalizada</label>
             </div>
@@ -56,9 +56,9 @@
                 <label class="btn px-4 fw-bold transition-all border" 
                        :for="'grupo-' + gIdx"
                        :style="{
-                         backgroundColor: nivelClase === grupo.nombre ? (grupo.colorHex || '#6b7280') : '#ffffff',
-                         color: nivelClase === grupo.nombre ? '#ffffff' : (grupo.colorHex || '#6b7280'),
-                         borderColor: grupo.colorHex || '#6b7280'
+                         backgroundColor: nivelClase === grupo.nombre ? (grupo.colorHex || '#6b7280') : 'var(--bg-tertiary)',
+                         color: nivelClase === grupo.nombre ? '#ffffff' : 'var(--text-secondary)',
+                         borderColor: grupo.colorHex || 'var(--border-primary)'
                        }">
                   {{ grupo.emoji ? grupo.emoji + ' ' : '' }}{{ grupo.nombre }}
                 </label>
@@ -128,9 +128,9 @@
             <input type="date" v-model="fechaAsistencia" class="form-control">
             <small class="home-footer-hint">Si lo dejas vacío, se usará la fecha de hoy.</small>
           </div>
-          <button @click="registrarAsistencias" class="app-btn app-btn--primary app-btn--lg home-footer-btn" :disabled="registrando">
+          <AppButton variant="success" size="lg" class="home-footer-btn" @click="registrarAsistencias" :disabled="registrando">
             {{ registrando ? '⏳ Registrando...' : '✅ Registrar Asistencias' }}
-          </button>
+          </AppButton>
         </div>
 
       </div>
@@ -192,6 +192,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import { formatearMontoInput, actualizarMontoInput } from '@/utils/formatters';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const students = ref([]);
 const sedesDisponibles = ref([]);

@@ -36,15 +36,16 @@
         </div>
       </div>
     </div>
-    <div class="d-flex gap-2 mt-4 pt-2 border-top">
-      <button @click="$emit('cancelar')" class="app-btn app-btn--ghost app-btn--sm" style="flex:1">✖ Cancelar</button>
-      <button @click="guardarEdicion" class="app-btn app-btn--primary app-btn--sm" style="flex:1">💾 Guardar</button>
+    <div class="d-flex gap-3 mt-4 pt-3 border-top">
+      <AppButton variant="outline" size="md" icon="✖" class="flex-fill" @click="$emit('cancelar')">Cancelar</AppButton>
+      <AppButton variant="outline" size="md" icon="💾" class="flex-fill" @click="guardarEdicion">Guardar</AppButton>
     </div>
   </div>
 </template>
 
 <script setup>
 import axios from 'axios';
+import AppButton from '@/components/ui/AppButton.vue';
 
 const esAdmin = localStorage.getItem('authRole') === 'ADMIN';
 const props = defineProps({ padre: { type: Object, required: true }, sedes: { type: Array, default: () => [] } });
@@ -130,6 +131,3 @@ const eliminarPadre = async () => {
 };
 </script>
 
-<style scoped>
-.panel-edicion { border-top: 2px solid var(--bs-primary); }
-</style>

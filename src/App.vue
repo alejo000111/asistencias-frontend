@@ -77,10 +77,22 @@
       </template>
     </div>
   </main>
+
+  <!-- ====== 🌙 DARK MODE FAB ====== -->
+  <button
+    class="theme-fab"
+    :aria-label="theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'"
+    :title="theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'"
+    @click="toggleTheme"
+  >
+    <span class="theme-fab__icon" :class="{ 'theme-fab__icon--animating': themeAnimating }">
+      {{ theme === 'dark' ? '☀️' : '🌙' }}
+    </span>
+  </button>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 
@@ -134,6 +146,35 @@ watch(autenticado, (val) => {
     cargarSedes();
   }
 }, { immediate: true });
+
+// ============================================================
+// 🌙 DARK MODE — Theme Toggle
+// ============================================================
+const theme = ref('light');
+const themeAnimating = ref(false);
+
+function applyTheme(t) {
+  theme.value = t;
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+}
+
+function toggleTheme() {
+  const next = theme.value === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  // Dispara animación en ambos sentidos
+  themeAnimating.value = true;
+  setTimeout(() => { themeAnimating.value = false; }, 400);
+}
+
+onMounted(() => {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    applyTheme('light');
+  }
+});
 
 const cerrarSesion = () => {
   localStorage.removeItem('authToken');
@@ -328,6 +369,92 @@ const cerrarSesion = () => {
     font-size: 1.1rem;
     opacity: 0.7;
   }
+}
+
+/* ============================================================
+   🌙 THEME FAB — Floating Action Button
+   ============================================================ */
+.theme-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--navbar-bg);
+  color: var(--gray-300);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.theme-fab:focus-visible {
+  outline: 2px solid var(--orange-500);
+  outline-offset: 3px;
+}
+
+.theme-fab:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+  color: var(--orange-400);
+}
+
+.theme-fab:active {
+  transform: scale(0.95);
+}
+
+.theme-fab__icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: transform var(--transition-normal);
+  display: inline-block;
+}
+
+.theme-fab__icon--animating {
+  animation: spin-reveal 0.35s ease;
+}
+
+@keyframes spin-reveal {
+  0% {
+    transform: rotate(-90deg) scale(0.6);
+    opacity: 0.4;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Pequeño glow decorativo alrededor del botón */
+.theme-fab::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-full);
+  background: conic-gradient(
+    from 180deg,
+    transparent 0%,
+    var(--orange-500) 25%,
+    transparent 50%,
+    var(--orange-500) 75%,
+    transparent 100%
+  );
+  opacity: 0.15;
+  z-index: -1;
+  transition: opacity var(--transition-normal);
+}
+
+.theme-fab:hover::after {
+  opacity: 0.35;
 }
 
 /* ============================================================
