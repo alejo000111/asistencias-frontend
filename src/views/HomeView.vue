@@ -238,18 +238,14 @@ watch(sedeSeleccionada, (nuevoId) => {
 });
 
 // ============================================================
-// WATCH REACTIVO (Opción 1): Dispara petición HTTP cada vez
-// que el usuario cambia sede, nivel o tipo de clase.
-// EMPLEADO → GET /api/clientes/estudiantes?sedeId=X&nivel=Y
-// ADMIN    → usa carga completa al montar (cargarEstudiantesAdmin)
+// WATCH REACTIVO UNIFICADO (Enfoque 1): Dispara petición HTTP
+// cada vez que el usuario cambia sede, nivel o tipo de clase.
+// Funciona para ADMIN y EMPLEADO por igual.
+// GET /api/clientes/estudiantes?sedeId=X&nivel=Y
+// El backend aplica el filtro a nivel BD (JOIN FETCH + WHERE)
+// y para EMPLEADO añade restricción por sedes autorizadas.
 // ============================================================
 watch([sedeSeleccionada, nivelClase, tipoClase], async ([sedeId, nivel, tipo]) => {
-  const rol = localStorage.getItem('authRole');
-  const esAdmin = rol === 'ADMIN' || rol === 'ROLE_ADMIN';
-
-  // ADMIN: no usa este watch (carga completa al montar)
-  if (esAdmin) return;
-
   if (!sedeId) {
     students.value = [];
     return;
@@ -281,61 +277,10 @@ watch([sedeSeleccionada, nivelClase, tipoClase], async ([sedeId, nivel, tipo]) =
 });
 
 // ============================================================
-// ADMIN: carga completa de todos los estudiantes al montar
-// (con datos financieros desde /api/finanzas/padres)
+// COMPUTED: identidad simple — el backend ya filtró por sede y nivel.
+// Tanto ADMIN como EMPLEADO reciben datos ya filtrados desde la BD.
 // ============================================================
-const cargarEstudiantesAdmin = async () => {
-  const rol = localStorage.getItem('authRole');
-  if (rol !== 'ADMIN' && rol !== 'ROLE_ADMIN') return;
-
-  try {
-    const response = await axios.get('/api/finanzas/padres');
-    if (!response?.data) return;
-    const allStudents = [];
-    response.data.forEach(padre => {
-      if ((padre.estado === 'ACTIVO' || !padre.estado) && padre.students) {
-        padre.students.forEach(hijo => {
-          if (hijo.estado === 'ACTIVO') {
-            allStudents.push({
-              ...hijo,
-              presente: false,
-              precioPersonalizado: null
-            });
-          }
-        });
-      }
-    });
-    students.value = allStudents.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
-  } catch (error) {
-    console.error('Error cargando estudiantes admin:', error);
-  }
-};
-
-// ============================================================
-// COMPUTED: filtro en memoria (solo ADMIN filtra aquí;
-// EMPLEADO ya recibe datos filtrados desde el backend)
-// ============================================================
-const estudiantesFiltrados = computed(() => {
-  const rol = localStorage.getItem('authRole');
-  const esAdmin = rol === 'ADMIN' || rol === 'ROLE_ADMIN';
-
-  // EMPLEADO: el backend ya filtró por sede y nivel
-  if (!esAdmin) return students.value;
-
-  // ADMIN: filtrar en memoria sobre la carga completa
-  let filtrados = students.value;
-  if (sedeSeleccionada.value) {
-    filtrados = filtrados.filter(s =>
-      s.matriculas && s.matriculas.some(m => m.sede && m.sede.id === sedeSeleccionada.value)
-    );
-  }
-  if (tipoClase.value === 'GRUPAL' && nivelClase.value) {
-    filtrados = filtrados.filter(s =>
-      s.matriculas && s.matriculas.some(m => m.nivel && m.nivel.includes(nivelClase.value))
-    );
-  }
-  return filtrados;
-});
+const estudiantesFiltrados = computed(() => students.value);
 
 const actualizarPrecioInput = (event, estudiante) => {
   actualizarMontoInput(event, estudiante, 'precioPersonalizado');
@@ -413,7 +358,6 @@ const registrarAsistencias = async () => {
 };
 
 onMounted(() => {
-  cargarEstudiantesAdmin();
   cargarSedesYPreseleccionar();
 });
 </script>
