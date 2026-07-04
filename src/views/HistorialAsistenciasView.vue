@@ -1,69 +1,26 @@
 <template>
-  <div class="mt-4">
-    <h3 class="mb-4">📅 Historial de Asistencias</h3>
+  <div>
+    <h3 class="mb-3 mt-0">📅 Historial de Asistencias</h3>
+
+    <!-- Buscador por nombre de deportista -->
+    <div class="mb-1">
+      <input
+        type="text"
+        v-model="searchQuery"
+        class="form-control shadow-sm border-secondary"
+        placeholder="🔍 Buscar por nombre de deportista..."
+      />
+    </div>
     
-    <div class="row">
-      <div v-for="grupo in asistenciasPaginadas" :key="grupo.id" class="col-md-4 mb-3">
-        <div class="card shadow-sm border-dark">
-          
-          <div class="card-header text-white fw-bold text-center" 
-               :style="grupo.titulo.includes('PERSONALIZADA') ? 'background-color: #0d6efd;' : (grupo.titulo.includes('AVANZADA') ? 'background-color: #fd7e14;' : 'background-color: #198754;')">
-            {{ grupo.titulo }}
-          </div>
-          
-          <div class="card-body text-center">
-            <h5 class="card-title text-dark mb-1">{{ grupo.fechaDisplay }}</h5>
-            
-            <div class="mb-3">
-              <span v-if="grupo.pendientesCount > 0" class="badge bg-danger shadow-sm px-2 py-1" style="font-size: 0.8rem;">
-                🚨 {{ grupo.pendientesCount }} por pagar
-              </span>
-              <span v-else class="badge bg-success shadow-sm px-2 py-1" style="font-size: 0.8rem;">
-                ✅ 100% Paga
-              </span>
-            </div>
-            
-            <button @click="grupo.mostrar = !grupo.mostrar" class="btn btn-sm w-100 mb-2 fw-bold shadow-sm btn-ver-alumnos">
-              {{ grupo.mostrar ? 'Ocultar Alumnos' : '👀 Ver Alumnos (' + grupo.estudiantes.length + ')' }}
-            </button>
-            
-            <div v-if="grupo.mostrar" class="text-start mt-2 border-top pt-2 small">
-              <div v-if="alumnosPorPagar(grupo.estudiantes).length > 0" class="mb-2">
-                <h6 class="text-danger fw-bold mb-1" style="font-size: 0.85rem;">❌ Por Pagar</h6>
-                <ul class="list-group list-group-flush">
-                  <li v-for="(alumno, index) in alumnosPorPagar(grupo.estudiantes)" :key="'deuda-'+index" class="list-group-item px-1 py-1 bg-transparent border-0 text-muted d-flex justify-content-between align-items-center">
-                    <div>
-                      • {{ alumno.nombre }}
-                      <span v-if="alumno.esMedia" class="text-dark fw-bold ms-1" style="font-size: 0.70rem;">(Media Clase)</span>
-                      <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearMonto(alumno.precioCobrado) }})</span>
-                    </div>
-                    <button @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
-                  </li>
-                </ul>
-              </div>
-
-              <div v-if="alumnosPagos(grupo.estudiantes).length > 0">
-                <h6 class="text-success fw-bold mb-1" style="font-size: 0.85rem;">✅ Clase Paga</h6>
-                <ul class="list-group list-group-flush">
-                  <li v-for="(alumno, index) in alumnosPagos(grupo.estudiantes)" :key="'paga-'+index" class="list-group-item px-1 py-1 bg-transparent border-0 text-muted d-flex justify-content-between align-items-center">
-                    <div>
-                      • {{ alumno.nombre }}
-                      <span v-if="alumno.esMedia" class="text-dark fw-bold ms-1" style="font-size: 0.70rem;">(Media Clase)</span>
-                      <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearMonto(alumno.precioCobrado) }})</span>
-                    </div>
-                    <button @click="eliminarRegistro(alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
-                  </li>
-                </ul>
-              </div>
-
-              <div class="mt-3 text-center border-top pt-2">
-                <button @click="eliminarListaCompleta(grupo)" class="btn btn-outline-danger btn-sm w-100 fw-bold">
-                  🗑️ Eliminar Lista Completa
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="row g-3 mt-1 align-items-start">
+      <div v-for="grupo in asistenciasPaginadas" :key="grupo.id" class="col-12 col-md-6 col-lg-4">
+        <AsistenciaCard
+          :grupo="grupo"
+          :is-open="tarjetaAbiertaId === grupo.id"
+          @toggle="id => tarjetaAbiertaId = (tarjetaAbiertaId === id ? null : id)"
+          @eliminarRegistro="eliminarRegistro"
+          @eliminarListaCompleta="eliminarListaCompleta"
+        />
       </div>
 
       <div v-if="asistenciasAgrupadas.length === 0" class="col-12 text-center text-muted mt-5">
@@ -71,12 +28,12 @@
       </div>
     </div>
 
-    <div v-if="totalPaginas > 1" class="d-flex justify-content-center align-items-center mt-4 mb-5 gap-3">
-      <button @click="paginaActual--" :disabled="paginaActual === 1" class="btn btn-outline-primary fw-bold px-4">
+    <div v-if="totalPaginas > 1" class="d-flex justify-content-center align-items-center mt-2 mb-2 gap-2">
+      <button @click="paginaActual--" :disabled="paginaActual === 1" class="btn btn-outline-primary btn-sm fw-bold px-3">
         ⬅ Anterior
       </button>
-      <span class="fw-bold text-muted">Página {{ paginaActual }} de {{ totalPaginas }}</span>
-      <button @click="paginaActual++" :disabled="paginaActual === totalPaginas" class="btn btn-outline-primary fw-bold px-4">
+      <span class="fw-bold text-muted small">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+      <button @click="paginaActual++" :disabled="paginaActual === totalPaginas" class="btn btn-outline-primary btn-sm fw-bold px-3">
         Siguiente ➡
       </button>
     </div>
@@ -84,158 +41,158 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
+import { formatearFecha } from '@/utils/formatters';
+import AsistenciaCard from '@/components/AsistenciaCard.vue';
 
-const asistenciasAgrupadas = ref([]);
+const tarjetaAbiertaId = ref(null);
+
+const searchQuery = ref('');
+const rawAsistencias = ref([]);
+const precios = ref({ grupal: 40000, personalizada: 50000 });
+const EMOJI_COLOR_MAP = { '🌱': '#059669', '🔥': '#ea580c', '⭐': '#0d6efd', '💪': '#7c3aed', '⚡': '#ca8a04', '🎯': '#dc2626', '🚀': '#0891b2', '💎': '#9333ea', '🌈': '#d946ef', '🦁': '#d97706' };
+
+import { useSedes } from '@/utils/useSedes';
+
+const { sedes, cargarSedes } = useSedes();
 
 const paginaActual = ref(1);
-const itemsPorPagina = 9; 
+const itemsPorPagina = 9;
+
+
+const getGrupoInfo = (nivel, sedeId) => {
+  const fallback = { emoji: '', colorHex: '#10b981' };
+  if (!nivel) return fallback;
+
+  if (sedeId && sedes.value.length > 0) {
+    const sedeData = sedes.value.find(s => s.id === sedeId);
+    if (sedeData && sedeData.grupos) {
+      let grupo = sedeData.grupos.find(g => g.nombre === nivel);
+      if (!grupo) grupo = sedeData.grupos.find(g => (g.emoji + ' ' + g.nombre) === nivel);
+      if (grupo) return { emoji: grupo.emoji || '', colorHex: grupo.colorHex || '#10b981' };
+    }
+  }
+
+  const firstChar = nivel.trim().charAt(0);
+  const colorFallback = EMOJI_COLOR_MAP[firstChar] || '#10b981';
+  return { emoji: firstChar, colorHex: colorFallback };
+};
+
+const asistenciasAgrupadas = computed(() => {
+  const raw = rawAsistencias.value;
+  const busqueda = searchQuery.value.toLowerCase().trim();
+  let datos = raw;
+  if (busqueda) {
+    datos = raw.filter(a => {
+      const nombre = a.nombreEstudiante || a.nombreEstudianteHistorico || '';
+      return nombre.toLowerCase().includes(busqueda);
+    });
+  }
+
+  const grupos = {};
+  datos.forEach(a => {
+    let titulo, color;
+    if (a.tipoClase === "PERSONALIZADA" && !a.nivel) {
+      titulo = "⭐ PERSONALIZADA";
+      color = '#0d6efd';
+    } else if (a.nivel) {
+      const nivelLimpio = a.nivel.trim();
+      const info = getGrupoInfo(nivelLimpio, a.sedeId);
+      if (nivelLimpio.startsWith('⭐')) {
+        titulo = nivelLimpio;
+      } else if (info.emoji && nivelLimpio.startsWith(info.emoji)) {
+        titulo = 'GRUPAL ' + nivelLimpio;
+      } else {
+        titulo = (info.emoji ? info.emoji + ' ' : '') + 'GRUPAL ' + nivelLimpio;
+      }
+      color = info.colorHex;
+    } else {
+      titulo = "⭐ PERSONALIZADA";
+      color = '#0d6efd';
+    }
+
+    const yyyy = Array.isArray(a.fecha) ? a.fecha[0] : new Date(a.fecha).getFullYear();
+    const mm = Array.isArray(a.fecha) ? a.fecha[1] : new Date(a.fecha).getMonth() + 1;
+    const dd = Array.isArray(a.fecha) ? a.fecha[2] : new Date(a.fecha).getDate();
+    const hh = Array.isArray(a.fecha) ? (a.fecha[3] || 0) : new Date(a.fecha).getHours();
+    const min = Array.isArray(a.fecha) ? (a.fecha[4] || 0) : new Date(a.fecha).getMinutes();
+    const key = `${yyyy}-${mm}-${dd}-${hh}-${min}-${titulo}`;
+
+    if (!grupos[key]) {
+      grupos[key] = {
+        id: key, tiempoMs: new Date(yyyy, mm - 1, dd, hh, min).getTime(),
+        fechaDisplay: formatearFecha(a.fecha),
+        titulo, color,        sede: a.sedeNombre || null,
+        estudiantes: [], pendientesCount: 0
+      };
+    }
+
+    const pGrupal = Number(precios.value.grupal || 40000);
+    const pPersonalizada = Number(precios.value.personalizada || 50000);
+    const precio = Number(a.precioCobrado);
+    const esPrecioEspecial = ![pGrupal, pPersonalizada].includes(precio);
+
+    grupos[key].estudiantes.push({
+      idAsistencia: a.id,
+      nombre: a.nombreEstudiante || a.nombreEstudianteHistorico || "Estudiante retirado",
+      pagada: a.clasePaga, precioCobrado: precio, esPrecioEspecial
+    });
+  });
+
+  return Object.values(grupos).map(g => {
+    g.pendientesCount = g.estudiantes.filter(e => !e.pagada).length;
+    return g;
+  }).sort((a, b) => {
+    if (a.pendientesCount > 0 && b.pendientesCount === 0) return -1;
+    if (a.pendientesCount === 0 && b.pendientesCount > 0) return 1;
+    return b.tiempoMs - a.tiempoMs;
+  });
+});
 
 const totalPaginas = computed(() => Math.ceil(asistenciasAgrupadas.value.length / itemsPorPagina));
 
 const asistenciasPaginadas = computed(() => {
   const inicio = (paginaActual.value - 1) * itemsPorPagina;
-  const fin = inicio + itemsPorPagina;
-  return asistenciasAgrupadas.value.slice(inicio, fin);
+  return asistenciasAgrupadas.value.slice(inicio, inicio + itemsPorPagina);
 });
+
+watch(searchQuery, () => { paginaActual.value = 1; });
 
 const cargarAsistencias = async () => {
   try {
     const response = await axios.get('/api/finanzas/historial-asistencias');
-    const raw = response.data;
-    const grupos = {};
-    
-    raw.forEach(a => {
-      let titulo = "⭐ PERSONALIZADA";
-      if (a.nivel === "INICIACIÓN") titulo = "🌱 GRUPAL INICIACIÓN";
-      if (a.nivel === "AVANZADO") titulo = "🔥 GRUPAL AVANZADA";
-
-      const yyyy = Array.isArray(a.fecha) ? a.fecha[0] : new Date(a.fecha).getFullYear();
-      const mm = Array.isArray(a.fecha) ? a.fecha[1] : new Date(a.fecha).getMonth() + 1;
-      const dd = Array.isArray(a.fecha) ? a.fecha[2] : new Date(a.fecha).getDate();
-      const hh = Array.isArray(a.fecha) ? (a.fecha[3] || 0) : new Date(a.fecha).getHours();
-      const min = Array.isArray(a.fecha) ? (a.fecha[4] || 0) : new Date(a.fecha).getMinutes();
-
-      const key = `${yyyy}-${mm}-${dd}-${hh}-${min}-${titulo}`;
-
-      if (!grupos[key]) {
-        grupos[key] = {
-          id: key,
-          tiempoMs: new Date(yyyy, mm - 1, dd, hh, min).getTime(),
-          fechaDisplay: formatearFechaDisplay(a.fecha),
-          titulo: titulo,
-          estudiantes: [],
-          mostrar: false,
-          pendientesCount: 0 // Lo inicializamos en 0
-        };
-      }
-      
-      const PRECIO_GRUPAL = 40000;
-      const PRECIO_MEDIA_GRUPAL = 30000;
-      const PRECIO_PERSONALIZADA = 50000;
-      const precio = Number(a.precioCobrado);
-      const esPrecioEspecial = ![PRECIO_GRUPAL, PRECIO_MEDIA_GRUPAL, PRECIO_PERSONALIZADA].includes(precio);
-
-      if (a.student) {
-        grupos[key].estudiantes.push({
-          idAsistencia: a.id,
-          nombre: a.student.nombreCompleto,
-          pagada: a.clasePaga,
-          esMedia: a.esMediaClase === true,
-          precioCobrado: precio,
-          esPrecioEspecial: esPrecioEspecial
-        });
-      } else {
-        grupos[key].estudiantes.push({
-          idAsistencia: a.id,
-          nombre: (a.nombreEstudianteHistorico || "Estudiante") + " (Retirado)",
-          pagada: a.clasePaga,
-          esMedia: a.esMediaClase === true,
-          precioCobrado: precio,
-          esPrecioEspecial: esPrecioEspecial
-        });
-      }
-    });
-
-    const arrGrupos = Object.values(grupos);
-    
-    arrGrupos.forEach(g => {
-      g.pendientesCount = g.estudiantes.filter(e => !e.pagada).length;
-    });
-
-    asistenciasAgrupadas.value = arrGrupos.sort((a, b) => {
-      const aTieneDeuda = a.pendientesCount > 0;
-      const bTieneDeuda = b.pendientesCount > 0;
-
-      if (aTieneDeuda && !bTieneDeuda) return -1;
-
-      if (!aTieneDeuda && bTieneDeuda) return 1;
-      
-      // Si ambos tienen deuda (o ambos están 100% pagos), gana el más reciente
-      return b.tiempoMs - a.tiempoMs;
-    });
-    
-    if (paginaActual.value > totalPaginas.value && totalPaginas.value > 0) {
-      paginaActual.value = totalPaginas.value;
-    }
+    // El backend ya filtra por sede para EMPLEADO (findBySedeIdIn)
+    rawAsistencias.value = response.data;
   } catch (error) { console.error("Error:", error); }
 };
 
-const formatearMonto = (valor) => {
-  if (valor === null || valor === undefined) return '0';
-  return Number(valor).toLocaleString('es-CO');
+const cargarPrecios = async () => {
+  try {
+    const res = await axios.get('/api/public/precios');
+    precios.value = res.data;
+  } catch (e) { console.error('Error cargando precios:', e); }
 };
-
-const formatearFechaDisplay = (fechaDato) => {
-  if (!fechaDato) return '';
-  if (Array.isArray(fechaDato)) {
-    return new Date(Date.UTC(fechaDato[0], fechaDato[1] - 1, fechaDato[2])).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-  }
-  return new Date(fechaDato).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-};
-
-const alumnosPorPagar = (estudiantes) => estudiantes.filter(e => !e.pagada);
-const alumnosPagos = (estudiantes) => estudiantes.filter(e => e.pagada);
 
 const eliminarRegistro = async (idAsistencia) => {
   if (!confirm("¿Seguro que deseas quitar a este estudiante de esta clase?")) return;
   try {
     await axios.delete(`/api/finanzas/asistencia/${idAsistencia}`);
-    cargarAsistencias(); 
+    cargarAsistencias();
   } catch (error) { alert("Error al eliminar."); }
 };
 
 const eliminarListaCompleta = async (grupo) => {
   if (!confirm("¿Seguro que deseas eliminar TODA esta lista de asistencia? Esto no se puede deshacer.")) return;
   try {
-    await Promise.all(grupo.estudiantes.map(est => 
+    await Promise.all(grupo.estudiantes.map(est =>
       axios.delete(`/api/finanzas/asistencia/${est.idAsistencia}`)
     ));
     cargarAsistencias();
   } catch (error) { alert("Error al eliminar la lista."); }
 };
 
-onMounted(() => { cargarAsistencias(); });
+
+
+onMounted(() => { cargarAsistencias(); cargarSedes(); cargarPrecios(); });
 </script>
-
-<style scoped>
-.btn-ver-alumnos {
-  background-color: #212529;
-  color: white;
-  border: 1px solid transparent;
-  transition: all 0.2s ease-in-out;
-}
-
-.btn-ver-alumnos:hover {
-  background-color: #495057;
-  color: white;
-  border: 1px solid #ced4da;
-  transform: scale(1.01);
-}
-
-.btn-ver-alumnos:active {
-  background-color: #000000;
-  transform: scale(0.99);
-}
-</style>

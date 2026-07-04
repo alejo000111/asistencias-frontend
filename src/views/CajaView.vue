@@ -1,6 +1,6 @@
 <template>
-  <div class="mt-4">
-    <h3 class="mb-4">📊 Historial de Caja</h3>
+  <div>
+    <h3 class="mb-4 mt-0">📊 Historial de Caja</h3>
 
     <!-- Barra de búsqueda en vivo -->
     <div class="mb-3">
@@ -31,7 +31,7 @@
             <tbody>
               <tr v-for="log in paginatedHistorial" :key="log.id">
                 <td class="fw-bold text-secondary">{{ formatearFecha(log.fecha) }}</td>
-                <td class="fw-bold">{{ log.parent ? log.parent.nombreCompleto : 'Desconocido' }}</td>
+                <td class="fw-bold">{{ log.nombreCliente || 'Desconocido' }}</td>
                 
                 <td>
                   <span class="badge bg-success fs-6">💰 Abono</span>
@@ -82,6 +82,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
+import { formatearFecha } from '@/utils/formatters';
 
 const historial = ref([]);
 const textoBusqueda = ref('');
@@ -101,7 +102,7 @@ const historialFiltrado = computed(() => {
   const busqueda = textoBusqueda.value.toLowerCase().trim();
   if (!busqueda) return historialIngresos.value;
   return historialIngresos.value.filter(log => {
-    const nombre = log.parent ? log.parent.nombreCompleto.toLowerCase() : '';
+    const nombre = (log.nombreCliente || '').toLowerCase();
     return nombre.includes(busqueda);
   });
 });
@@ -120,14 +121,6 @@ const paginatedHistorial = computed(() => {
   const fin = inicio + registrosPorPagina;
   return historialFiltrado.value.slice(inicio, fin);
 });
-
-const formatearFecha = (fechaDato) => {
-  if (!fechaDato) return '';
-  if (Array.isArray(fechaDato)) {
-    return new Date(Date.UTC(fechaDato[0], fechaDato[1] - 1, fechaDato[2])).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-  }
-  return new Date(fechaDato).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-};
 
 const cargarHistorial = async () => {
   try {
