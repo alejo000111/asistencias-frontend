@@ -255,7 +255,14 @@ watch([sedeSeleccionada, nivelClase, tipoClase], async ([sedeId, nivel, tipo]) =
   try {
     const params = { sedeId };
     if (tipo === 'GRUPAL' && nivel) {
-      params.nivel = nivel;
+      // Reconstruir el nivel completo (emoji + nombre) como está en la BD
+      // porque 'nivelClase' solo guarda grupo.nombre (ej. "Iniciación")
+      // pero la columna 'enrollments.nivel' almacena "🌱 Iniciación".
+      const grupo = gruposSedeSeleccionada.value.find(g => g.nombre === nivel);
+      const nivelConEmoji = grupo
+        ? `${grupo.emoji || ''} ${grupo.nombre}`.trim()
+        : nivel;
+      params.nivel = nivelConEmoji;
     }
     const response = await axios.get('/api/clientes/estudiantes', { params });
     if (!response?.data) { students.value = []; return; }
