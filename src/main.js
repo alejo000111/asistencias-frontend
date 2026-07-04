@@ -46,20 +46,33 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
   response => response,
   error => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // Token inválido/expirado o sin permisos — limpiar sesión y redirigir a login
-      localStorage.clear();
-      alert('⚠️ Tu sesión ha expirado o no tienes autorización. Redirigiendo al inicio de sesión...');
-      router.push('/login');
-      return Promise.reject(error);
-    }
+    if (error.response) {
+      const status = error.response.status;
 
-    if (!error.response) {
-      // Error de red (backend caido, timeout, etc.) — solo log, sin alert (cada componente maneja su UI)
+      if (status === 401) {
+        // 401 = No autenticado o token inválido/expirado — limpiar sesión y redirigir a login
+        localStorage.clear();
+        alert('⚠️ Tu sesión ha expirado. Redirigiendo al inicio de sesión...');
+        router.push('/login');
+        return Promise.reject(error);
+      }
+
+      if (status === 403) {
+        // 403 = Autenticado pero sin permisos para este recurso.
+        // NO se limpia la sesión, porque puede ser un error de código
+        // (ej. EMPLEADO llamando a endpoint de ADMIN).
+        // El componente que hizo la llamada debe manejar el error con try/catch.
+        console.warn('⚠️ Acceso denegado (403) a', error.config?.url, '- el usuario no tiene permisos para este recurso.');
+        return Promise.reject(error);
+      }
+
+      if (status >= 500) {
+        // Error 500+ del backend — solo log, sin alert
+        console.error('Error interno del servidor (500):', error.response.data);
+      }
+    } else {
+      // Error de red (backend caido, timeout, etc.) — solo log
       console.error('Error de conexión con el servidor.', error);
-    } else if (error.response.status >= 500) {
-      // Error 500+ del backend — solo log, sin alert
-      console.error('Error interno del servidor (500):', error.response.data);
     }
     return Promise.reject(error);
   }

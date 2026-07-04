@@ -115,8 +115,20 @@ const calcularEdad = () => {
 
 const cargarPadres = async () => {
   try {
-    const res = await axios.get('/api/finanzas/padres');
-    padres.value = res.data.filter(padre => padre.estado === 'ACTIVO' || !padre.estado);
+    const rol = localStorage.getItem('authRole');
+    let data;
+
+    if (rol === 'ADMIN' || rol === 'ROLE_ADMIN') {
+      // ADMIN: endpoint con datos financieros
+      const res = await axios.get('/api/finanzas/padres');
+      data = res.data;
+    } else {
+      // EMPLEADO: endpoint /api/clientes filtrado por sede
+      const res = await axios.get('/api/clientes');
+      data = res.data;
+    }
+
+    padres.value = data.filter(padre => padre.estado === 'ACTIVO' || !padre.estado);
   } catch (error) { console.error(error); }
 };
 

@@ -249,23 +249,39 @@ const actualizarPrecioInput = (event, estudiante) => {
 
 const cargarEstudiantes = async () => {
   try {
-    const response = await axios.get('/api/finanzas/padres');
-    if (!response?.data) return;
-    const allStudents = [];
-    
-    response.data.forEach(padre => {
-      if ((padre.estado === 'ACTIVO' || !padre.estado) && padre.students) {
-        padre.students.forEach(hijo => {
-          if (hijo.estado === 'ACTIVO') {
-            allStudents.push({
-              ...hijo,
-                  presente: false,
-              precioPersonalizado: null
-            });
-          }
-        });
-      }
-    });
+    const rol = localStorage.getItem('authRole');
+    let allStudents = [];
+
+    if (rol === 'ADMIN' || rol === 'ROLE_ADMIN') {
+      // ADMIN: obtiene padres con datos financieros y estudiantes anidados
+      const response = await axios.get('/api/finanzas/padres');
+      if (!response?.data) return;
+      response.data.forEach(padre => {
+        if ((padre.estado === 'ACTIVO' || !padre.estado) && padre.students) {
+          padre.students.forEach(hijo => {
+            if (hijo.estado === 'ACTIVO') {
+              allStudents.push({
+                ...hijo,
+                presente: false,
+                precioPersonalizado: null
+              });
+            }
+          });
+        }
+      });
+    } else {
+      // EMPLEADO: usa endpoint /api/clientes/estudiantes (filtrado por sede)
+      const response = await axios.get('/api/clientes/estudiantes');
+      if (!response?.data) return;
+      allStudents = response.data
+        .filter(hijo => hijo.estado === 'ACTIVO')
+        .map(hijo => ({
+          ...hijo,
+          presente: false,
+          precioPersonalizado: null
+        }));
+    }
+
     students.value = allStudents.sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto));
   } catch (error) {
     console.error("Error cargando estudiantes:", error);
