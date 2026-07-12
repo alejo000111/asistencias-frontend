@@ -49,7 +49,7 @@ import AppButton from '@/components/ui/AppButton.vue';
 
 const esAdmin = localStorage.getItem('authRole') === 'ADMIN';
 const props = defineProps({ padre: { type: Object, required: true }, sedes: { type: Array, default: () => [] } });
-const emit = defineEmits(['recargar', 'cancelar']);
+const emit = defineEmits(['recargar', 'cancelar', 'notificar']);
 
 const calcularEdad = (h) => {
   if (!h.editFechaNacimiento) return;
@@ -70,7 +70,7 @@ const guardarEdicion = async () => {
     for (const hijo of props.padre.students) {
       const sedesSinGrupo = (hijo.editSedeIds || []).filter(sid => !hijo.editNiveles[sid] || hijo.editNiveles[sid] === '');
       if (sedesSinGrupo.length > 0) {
-        alert('⚠️ Por favor selecciona un grupo para todas las sedes marcadas en el deportista: ' + (hijo.editNombre || hijo.nombreCompleto));
+        emit('notificar', { tipo: 'warning', titulo: 'Grupo Requerido', mensaje: 'Por favor selecciona un grupo para todas las sedes del deportista: ' + (hijo.editNombre || hijo.nombreCompleto) });
         return;
       }
     }
@@ -92,12 +92,12 @@ const guardarEdicion = async () => {
         });
       }));
     }
-    alert("✅ Cambios guardados correctamente.");
+    emit('notificar', { tipo: 'success', titulo: 'Cambios Guardados', mensaje: 'Se actualizaron los datos del padre y sus deportistas correctamente.' });
     emit('cancelar');
     emit('recargar');
   } catch (error) {
     console.error("Detalle del error:", error);
-    alert("Hubo un error al cambiar los datos.");
+    emit('notificar', { tipo: 'danger', titulo: 'Error al Guardar', mensaje: 'Hubo un error al guardar los cambios en el servidor.' });
   }
 };
 
@@ -105,7 +105,7 @@ const eliminarDeportista = async (idHijo, nombreHijo) => {
   if (!confirm('¿Eliminar a ' + nombreHijo + '?')) return;
   try {
     await axios.delete('/api/registro/deportista/' + idHijo);
-    alert('✅ Eliminado.');
+    emit('notificar', { tipo: 'success', titulo: 'Deportista Eliminado', mensaje: `Se eliminó al deportista ${nombreHijo} del sistema.` });
     if (Array.isArray(props.padre.students)) {
       props.padre.students = props.padre.students.filter(h => h.id !== idHijo);
     }
@@ -113,7 +113,7 @@ const eliminarDeportista = async (idHijo, nombreHijo) => {
     emit('recargar');
   } catch (error) {
     console.error("Detalle del error:", error);
-    alert("Hubo un error al cambiar los datos.");
+    emit('notificar', { tipo: 'danger', titulo: 'Error al Eliminar', mensaje: 'Hubo un error al intentar eliminar el deportista.' });
   }
 };
 
@@ -121,12 +121,12 @@ const eliminarPadre = async () => {
   if (!confirm('🚨 ¿Eliminar a ' + props.padre.nombreCompleto + ' y TODOS sus deportistas?')) return;
   try {
     const res = await axios.delete('/api/registro/padre/' + props.padre.id);
-    alert(res.data);
+    emit('notificar', { tipo: 'success', titulo: 'Familia Eliminada', mensaje: res.data });
     emit('cancelar');
     emit('recargar');
   } catch (error) {
     console.error("Detalle del error:", error);
-    alert("Hubo un error al cambiar los datos.");
+    emit('notificar', { tipo: 'danger', titulo: 'Error al Eliminar', mensaje: 'Hubo un error al intentar eliminar la familia.' });
   }
 };
 </script>

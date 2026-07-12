@@ -110,19 +110,18 @@
                class="home-estudiante-card"
                :class="{ 'home-estudiante-card--selected': estudiante.presente }"
                @click="estudiante.presente = !estudiante.presente">
-            <div class="home-estudiante-card__left">
+            <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
               <div class="home-estudiante-card__checkbox">
-                <input class="form-check-input fs-5" type="checkbox" v-model="estudiante.presente" @click.stop>
+                <input class="form-check-input fs-5 m-0" type="checkbox" v-model="estudiante.presente" @click.stop>
               </div>
-              <div class="home-estudiante-card__info">
-                <span class="home-estudiante-card__name">{{ estudiante.nombreCompleto }}</span>
-                <input type="text" class="form-control form-control-sm mt-1" 
-                       :value="formatearMontoInput(estudiante.precioPersonalizado)" 
-                       @input.stop="actualizarPrecioInput($event, estudiante)" 
-                       placeholder="Precio opcional" 
-                       :disabled="!estudiante.presente"
-                       @click.stop>
-              </div>
+              <span class="home-estudiante-card__name text-truncate">{{ estudiante.nombreCompleto }}</span>
+            </div>
+            <div class="ms-3" style="width: 90px; flex-shrink: 0;" @click.stop>
+              <input type="text" class="form-control form-control-sm text-center" 
+                     :value="formatearMontoInput(estudiante.precioPersonalizado)" 
+                     @input="actualizarPrecioInput($event, estudiante)" 
+                     placeholder="Precio" 
+                     :disabled="!estudiante.presente">
             </div>
           </div>
           <div v-if="estudiantesFiltrados.length === 0" class="text-center text-muted py-5">
@@ -374,11 +373,11 @@ onMounted(() => {
 .home-estudiante-card {
   display: flex;
   align-items: center;
-  padding: var(--space-3);
+  padding: 6px 12px;
   margin-bottom: var(--space-2);
   background: var(--card-bg);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;

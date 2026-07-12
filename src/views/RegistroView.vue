@@ -5,8 +5,7 @@
       <div class="card shadow-sm border-success">
         <div class="card-header bg-success text-white"><h5 class="mb-0">👨‍👩‍👦 Registrar Padre / Acudiente</h5></div>
         <div class="card-body">
-          <div class="mb-3"><label class="form-label">Nombre(s)</label><input type="text" v-model="formPadre.nombre" class="form-control" placeholder="Ej: Carlos"></div>
-          <div class="mb-3"><label class="form-label">Apellido</label><input type="text" v-model="formPadre.apellido" class="form-control" placeholder="Ej: Perez"></div>
+          <div class="mb-3"><label class="form-label">Nombre Completo</label><input type="text" v-model="formPadre.nombreCompleto" class="form-control" placeholder="Ej: Carlos Perez"></div>
           <div class="mb-3"><label class="form-label">Telefono</label><input type="text" v-model="formPadre.telefono" class="form-control" placeholder="Ej: 3001234567"></div>
           <button @click="enviarPadre" class="btn btn-success w-100">Guardar Padre</button>
         </div>
@@ -24,10 +23,7 @@
             </ul>
             <div v-if="padreSeleccionado" class="mt-1"><span class="badge bg-success fs-6 shadow-sm">✓ {{ padreSeleccionado.nombreCompleto }}</span></div>
           </div>
-          <div class="row">
-            <div class="col-6 mb-3"><label class="form-label">Nombre(s)</label><input type="text" v-model="formDeportista.nombre" class="form-control"></div>
-            <div class="col-6 mb-3"><label class="form-label">Apellido</label><input type="text" v-model="formDeportista.apellido" class="form-control"></div>
-          </div>
+          <div class="mb-3"><label class="form-label">Nombre Completo</label><input type="text" v-model="formDeportista.nombreCompleto" class="form-control" placeholder="Ej: Andres Perez"></div>
           <div class="row align-items-end">
             <div class="col-6 mb-3"><label class="form-label">Fecha de Nacimiento</label><input type="date" v-model="formDeportista.fechaNacimiento" @change="calcularEdad" class="form-control"></div>
             <div class="col-6 mb-3"><label class="form-label">Edad</label><input type="number" v-model="formDeportista.edad" class="form-control bg-light text-primary fw-bold" readonly placeholder="Elige fecha"></div>
@@ -65,8 +61,16 @@ const { sedes: sedesDisponibles, cargarSedes } = useSedes();
 
 const sedeIdsSeleccionados = ref([]);
 const nivelesPorSede = ref({});
-const formPadre = ref({ nombre: '', apellido: '', telefono: '' });
-const formDeportista = ref({ parentId: '', nombre: '', apellido: '', edad: '', fechaNacimiento: '' });
+const formPadre = ref({ nombreCompleto: '', telefono: '' });
+const formDeportista = ref({ parentId: '', nombreCompleto: '', edad: '', fechaNacimiento: '' });
+
+const splitNombreApellido = (fullName) => {
+  const partes = (fullName || '').trim().split(/\s+/);
+  if (partes.length <= 1) {
+    return { nombre: partes[0] || '', apellido: '' };
+  }
+  return { nombre: partes[0], apellido: partes.slice(1).join(' ') };
+};
 
 const textoBusquedaPadre = ref('');
 const padreSeleccionado = ref(null);
@@ -138,20 +142,27 @@ const cargarPadres = async () => {
 
 
 const enviarPadre = async () => {
-  if (!formPadre.value.nombre || !formPadre.value.apellido || !formPadre.value.telefono) { alert("⚠️ Completa todos los campos del padre."); return; }    try {
-      await axios.post('/api/registro/padre', null, { params: formPadre.value });
-      alert("✅ Padre registrado con exito");
-      formPadre.value = { nombre: '', apellido: '', telefono: '' };
-      cargarPadres();
-    } catch (error) {
-      if (error.response?.status === 401 || error.response?.status === 403) return; // interceptor ya maneja esto
-      alert(error.response?.data || "❌ Error al registrar el padre. Revisa la consola.");
-      console.error(error);
-    }
+  if (!formPadre.value.nombreCompleto || !formPadre.value.nombreCompleto.trim() || !formPadre.value.telefono) { 
+    alert("⚠️ Completa todos los campos del padre."); 
+    return; 
+  }
+  const { nombre, apellido } = splitNombreApellido(formPadre.value.nombreCompleto);
+  try {
+    await axios.post('/api/registro/padre', null, { 
+      params: { nombre, apellido, telefono: formPadre.value.telefono } 
+    });
+    alert("✅ Padre registrado con exito");
+    formPadre.value = { nombreCompleto: '', telefono: '' };
+    cargarPadres();
+  } catch (error) {
+    if (error.response?.status === 401 || error.response?.status === 403) return; // interceptor ya maneja esto
+    alert(error.response?.data || "❌ Error al registrar el padre. Revisa la consola.");
+    console.error(error);
+  }
 };
 
 const enviarDeportista = async () => {
-  if (!formDeportista.value.parentId || !formDeportista.value.nombre || !formDeportista.value.fechaNacimiento || formDeportista.value.edad === '') {
+  if (!formDeportista.value.parentId || !formDeportista.value.nombreCompleto || !formDeportista.value.nombreCompleto.trim() || !formDeportista.value.fechaNacimiento || formDeportista.value.edad === '') {
     alert("⚠️ Completa todos los campos.");
     return;
   }
@@ -165,28 +176,31 @@ const enviarDeportista = async () => {
   sedeIdsSeleccionados.value.forEach(sid => {
     matriculas.push({ sedeId: sid, nivel: nivelesPorSede.value[sid] });
   });
-  if (matriculas.length === 0) { alert("⚠️ Selecciona al menos una sede y su grupo."); return; }    try {
-      await axios.post('/api/registro/deportista', {
-        parentId: formDeportista.value.parentId,
-        nombre: formDeportista.value.nombre,
-        apellido: formDeportista.value.apellido,
-        edad: formDeportista.value.edad,
-        fechaNacimiento: formDeportista.value.fechaNacimiento,
-        matriculas: matriculas
-      });
-      alert("✅ Deportista registrado con exito");
-      formDeportista.value = { parentId: '', nombre: '', apellido: '', edad: '', fechaNacimiento: '' };
-      textoBusquedaPadre.value = '';
-      padreSeleccionado.value = null;
-      mostrarDropdown.value = false;
-      sedeIdsSeleccionados.value = [];
-      nivelesPorSede.value = {};
-    } catch (error) {
-      if (error.response?.status === 401 || error.response?.status === 403) return; // interceptor ya maneja esto
-      const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : null) || "❌ Error al registrar el deportista. Revisa la consola.";
-      alert(msg);
-      console.error(error);
-    }
+  if (matriculas.length === 0) { alert("⚠️ Selecciona al menos una sede y su grupo."); return; }
+  
+  const { nombre, apellido } = splitNombreApellido(formDeportista.value.nombreCompleto);
+  try {
+    await axios.post('/api/registro/deportista', {
+      parentId: formDeportista.value.parentId,
+      nombre,
+      apellido,
+      edad: formDeportista.value.edad,
+      fechaNacimiento: formDeportista.value.fechaNacimiento,
+      matriculas: matriculas
+    });
+    alert("✅ Deportista registrado con exito");
+    formDeportista.value = { parentId: '', nombreCompleto: '', edad: '', fechaNacimiento: '' };
+    textoBusquedaPadre.value = '';
+    padreSeleccionado.value = null;
+    mostrarDropdown.value = false;
+    sedeIdsSeleccionados.value = [];
+    nivelesPorSede.value = {};
+  } catch (error) {
+    if (error.response?.status === 401 || error.response?.status === 403) return; // interceptor ya maneja esto
+    const msg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : null) || "❌ Error al registrar el deportista. Revisa la consola.";
+    alert(msg);
+    console.error(error);
+  }
 };
 
 onMounted(() => { cargarPadres(); cargarSedes(); });

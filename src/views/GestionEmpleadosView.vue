@@ -7,10 +7,10 @@
       </button>
     </div>
 
-    <!-- Formulario nuevo/editar -->
-    <div v-if="mostrarFormulario" class="card shadow-sm border-primary mb-4">
+    <!-- Formulario nuevo (arriba de la tabla) -->
+    <div v-if="empleadoIdEnEdicion === -1" class="card shadow-sm mb-4">
       <div class="card-body">
-        <h5 class="card-title mb-3">{{ editandoId ? '✏️ Editar Empleado' : '👤 Nuevo Empleado' }}</h5>
+        <h5 class="card-title mb-3">👤 Nuevo Empleado</h5>
         
         <div class="row g-3">
           <div class="col-md-6">
@@ -18,7 +18,7 @@
             <input type="text" v-model="formUsername" class="form-control" placeholder="Nombre de usuario" />
           </div>
           <div class="col-md-6">
-            <label class="form-label fw-semibold small">{{ editandoId ? 'Nueva Contraseña (dejar vacío para mantener)' : 'Contraseña' }}</label>
+            <label class="form-label fw-semibold small">Contraseña</label>
             <input type="password" v-model="formPassword" class="form-control" placeholder="••••••" />
           </div>
         </div>
@@ -38,11 +38,11 @@
                 <input
                   type="checkbox"
                   :value="sede.id"
-                  :id="'sede-' + sede.id"
+                  :id="'sede-new-' + sede.id"
                   v-model="formSedeIds"
                   class="form-check-input"
                 />
-                <label :for="'sede-' + sede.id" class="form-check-label small">{{ sede.nombre }}</label>
+                <label :for="'sede-new-' + sede.id" class="form-check-label small">{{ sede.nombre }}</label>
               </div>
               <div v-if="sedesDisponibles.length === 0" class="text-muted small text-center py-2">
                 No hay sedes disponibles. Crea una primero.
@@ -52,10 +52,10 @@
         </div>
 
         <div class="d-flex gap-2 mt-4">
-          <button class="btn btn-success fw-bold shadow-sm px-4" @click="guardar" :disabled="!formUsername.trim() || (!editandoId && !formPassword.trim())">
+          <button class="btn btn-outline-secondary btn-premium-action btn-premium-save px-4" @click="guardar" :disabled="!formUsername.trim() || !formPassword.trim()">
             💾 Guardar
           </button>
-          <button class="btn btn-outline-secondary px-4" @click="cancelar">✖ Cancelar</button>
+          <button class="btn btn-outline-secondary btn-premium-action btn-premium-cancel px-4" @click="cancelar">✖ Cancelar</button>
         </div>
       </div>
     </div>
@@ -74,25 +74,81 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="emp in empleados" :key="emp.id">
-              <td class="text-muted">{{ emp.id }}</td>
-              <td class="fw-bold">{{ emp.username }}</td>
-              <td>
-                <span class="badge" :class="emp.role === 'ADMIN' ? 'bg-dark' : 'bg-primary'">
-                  {{ emp.role === 'ADMIN' ? '🛡️ Admin' : '🧑‍💼 Empleado' }}
-                </span>
-              </td>
-              <td class="small">
-                <span v-if="emp.sedeNombres && emp.sedeNombres.length > 0">
-                  {{ emp.sedeNombres.join(', ') }}
-                </span>
-                <span v-else class="text-muted">Todas / Sin sede</span>
-              </td>
-              <td class="text-end">
-                <button class="btn btn-sm btn-outline-primary me-1" @click="editar(emp)">✏️</button>
-                <button class="btn btn-sm btn-outline-danger" @click="eliminar(emp)">🗑️</button>
-              </td>
-            </tr>
+            <template v-for="emp in empleados" :key="emp.id">
+              <tr>
+                <td class="text-muted">{{ emp.id }}</td>
+                <td class="fw-bold">{{ emp.username }}</td>
+                <td>
+                  <span class="badge" :class="emp.role === 'ADMIN' ? 'bg-dark' : 'bg-primary'">
+                    {{ emp.role === 'ADMIN' ? '🛡️ Admin' : '🧑‍💼 Empleado' }}
+                  </span>
+                </td>
+                <td class="small">
+                  <span v-if="emp.sedeNombres && emp.sedeNombres.length > 0">
+                    {{ emp.sedeNombres.join(', ') }}
+                  </span>
+                  <span v-else class="text-muted">Todas / Sin sede</span>
+                </td>
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-primary me-1" @click="editar(emp)">✏️</button>
+                  <button class="btn btn-sm btn-outline-danger" @click="eliminar(emp)">🗑️</button>
+                </td>
+              </tr>
+              <!-- Fila de edición inline (debajo del empleado) -->
+              <tr v-if="empleadoIdEnEdicion === emp.id" class="edit-row">
+                <td colspan="5" class="p-4 border-0">
+                  <div class="p-4 rounded border" style="background: var(--bg-tertiary);">
+                    <h5 class="mb-3">✏️ Editar Empleado: {{ emp.username }}</h5>
+                    
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Usuario</label>
+                        <input type="text" v-model="formUsername" class="form-control" placeholder="Nombre de usuario" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Nueva Contraseña (dejar vacío para mantener)</label>
+                        <input type="password" v-model="formPassword" class="form-control" placeholder="••••••" />
+                      </div>
+                    </div>
+
+                    <div class="row g-3 mt-2">
+                      <div class="col-md-6">
+                        <label class="form-label fw-semibold small">Rol</label>
+                        <select v-model="formRole" class="form-select">
+                          <option value="EMPLEADO">🧑‍💼 Empleado</option>
+                          <option value="ADMIN">🛡️ Administrador</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6" v-if="formRole === 'EMPLEADO'">
+                        <label class="form-label fw-semibold small">Sedes Autorizadas</label>
+                        <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                          <div v-for="sede in sedesDisponibles.filter(s => s.activa !== false)" :key="sede.id" class="form-check">
+                            <input
+                              type="checkbox"
+                              :value="sede.id"
+                              :id="'sede-edit-' + emp.id + '-' + sede.id"
+                              v-model="formSedeIds"
+                              class="form-check-input"
+                            />
+                            <label :for="'sede-edit-' + emp.id + '-' + sede.id" class="form-check-label small">{{ sede.nombre }}</label>
+                          </div>
+                          <div v-if="sedesDisponibles.length === 0" class="text-muted small text-center py-2">
+                            No hay sedes disponibles. Crea una primero.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                      <button class="btn btn-outline-secondary btn-premium-action btn-premium-save px-4" @click="guardar" :disabled="!formUsername.trim()">
+                        💾 Guardar
+                      </button>
+                      <button class="btn btn-outline-secondary btn-premium-action btn-premium-cancel px-4" @click="cancelar">✖ Cancelar</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
             <tr v-if="empleados.length === 0">
               <td colspan="5" class="text-center text-muted py-4">No hay empleados registrados</td>
             </tr>
@@ -112,8 +168,7 @@ import { useSedes } from '@/utils/useSedes';
 
 const { sedes: sedesDisponibles, cargarSedes } = useSedes();
 
-const mostrarFormulario = ref(false);
-const editandoId = ref(null);
+const empleadoIdEnEdicion = ref(null); // null = cerrado, -1 = nuevo, >0 = editando
 const formUsername = ref('');
 const formPassword = ref('');
 const formRole = ref('EMPLEADO');
@@ -128,29 +183,29 @@ const cargarEmpleados = async () => {
   }
 };
 
-
-
 const abrirNuevo = () => {
-  editandoId.value = null;
+  cancelar();
+  empleadoIdEnEdicion.value = -1;
   formUsername.value = '';
   formPassword.value = '';
   formRole.value = 'EMPLEADO';
   formSedeIds.value = [];
-  mostrarFormulario.value = true;
 };
 
 const editar = (emp) => {
-  editandoId.value = emp.id;
+  if (empleadoIdEnEdicion.value === emp.id) return;
+  cancelar();
+  empleadoIdEnEdicion.value = emp.id;
   formUsername.value = emp.username;
   formPassword.value = '';
   formRole.value = emp.role;
   formSedeIds.value = emp.sedeIds || [];
-  mostrarFormulario.value = true;
 };
 
 const guardar = async () => {
   if (!formUsername.value.trim()) return;
-  if (!editandoId.value && !formPassword.value.trim()) return;
+  const esNuevo = empleadoIdEnEdicion.value === -1;
+  if (esNuevo && !formPassword.value.trim()) return;
 
   const body = {
     username: formUsername.value.trim(),
@@ -163,10 +218,10 @@ const guardar = async () => {
   }
 
   try {
-    if (editandoId.value) {
-      await axios.put(`/api/empleados/${editandoId.value}`, body);
-    } else {
+    if (esNuevo) {
       await axios.post('/api/empleados', body);
+    } else {
+      await axios.put(`/api/empleados/${empleadoIdEnEdicion.value}`, body);
     }
     cancelar();
     cargarEmpleados();
@@ -177,8 +232,7 @@ const guardar = async () => {
 };
 
 const cancelar = () => {
-  mostrarFormulario.value = false;
-  editandoId.value = null;
+  empleadoIdEnEdicion.value = null;
   formUsername.value = '';
   formPassword.value = '';
   formRole.value = 'EMPLEADO';
@@ -201,3 +255,40 @@ onMounted(() => {
   cargarSedes();
 });
 </script>
+
+<style scoped>
+.edit-row td {
+  border-bottom: 2px solid var(--orange-200) !important;
+}
+
+.btn-premium-action {
+  font-weight: 700 !important;
+  border-width: 2px !important;
+  border-radius: 8px !important;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.btn-premium-save {
+  border-color: var(--color-success) !important;
+}
+
+.btn-premium-save:hover:not(:disabled) {
+  background-color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  color: white !important;
+}
+
+.btn-premium-cancel {
+  border-color: var(--color-danger) !important;
+}
+
+.btn-premium-cancel:hover {
+  background-color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+  color: white !important;
+}
+</style>

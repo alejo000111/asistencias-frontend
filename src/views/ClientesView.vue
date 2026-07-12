@@ -4,6 +4,16 @@
       <h3 class="mb-0 mt-0">👥 Gestión de Clientes y Perfiles</h3>
     </div>
 
+    <!-- Banner de notificación premium dismissible -->
+    <div v-if="notificacion" class="alert d-flex align-items-center gap-3 shadow-sm alert-dismissible fade show border mb-4" :class="`alert-${notificacion.tipo}`" role="alert">
+      <span style="font-size: 1.5rem;">{{ notificacion.tipo === 'success' ? '✅' : '⚠️' }}</span>
+      <div>
+        <strong class="d-block">{{ notificacion.titulo }}</strong>
+        <small :class="notificacion.tipo === 'success' ? 'text-success-emphasis' : 'text-danger-emphasis'">{{ notificacion.mensaje }}</small>
+      </div>
+      <button type="button" class="btn-close" @click="notificacion = null" aria-label="Close"></button>
+    </div>
+
     <ul class="nav nav-tabs mb-4">
       <li class="nav-item">
         <button class="nav-link fw-bold" :class="{ 'active': pestanaActual === 'ACTIVOS' }" @click="pestanaActual = 'ACTIVOS'">
@@ -47,6 +57,7 @@
             @recargar="cargarPadres" 
             @toggleCardForm="onToggleCardForm"
             @toggleDeudas="onToggleDeudas"
+            @notificar="setNotificacion"
           />
         </div>
         <div v-if="padresActivosConDeuda.length === 0" class="text-muted mb-4">Nadie debe dinero. ¡Excelente!</div>
@@ -62,6 +73,7 @@
             @recargar="cargarPadres" 
             @toggleCardForm="onToggleCardForm"
             @toggleDeudas="onToggleDeudas"
+            @notificar="setNotificacion"
           />
         </div>
         <div v-if="padresActivosAlDia.length === 0" class="text-muted">No hay clientes en esta categoría.</div>
@@ -81,6 +93,7 @@
             @recargar="cargarPadres" 
             @toggleCardForm="onToggleCardForm"
             @toggleDeudas="onToggleDeudas"
+            @notificar="setNotificacion"
           />
         </div>
         <div v-if="padresInactivos.length === 0" class="text-muted">No hay clientes inactivos.</div>
@@ -107,6 +120,17 @@ const filtroSedeId = ref('');
 const currentOpenClientId = ref(null);
 const currentOpenFormType = ref(null); // 'abono', 'historial', o 'edit'
 const currentDeudasClientId = ref(null);
+
+const notificacion = ref(null);
+const timerNotificacion = ref(null);
+
+const setNotificacion = ({ tipo, titulo, mensaje }) => {
+  if (timerNotificacion.value) clearTimeout(timerNotificacion.value);
+  notificacion.value = { tipo, titulo, mensaje };
+  timerNotificacion.value = setTimeout(() => {
+    notificacion.value = null;
+  }, 4000);
+};
 
 // Si se hace clic en el mismo formulario del mismo cliente, se cierra.
 const onToggleCardForm = ({ clientId, formType }) => {

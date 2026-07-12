@@ -25,23 +25,26 @@ import axios from 'axios';
 import { formatearMontoInput, actualizarMontoInput } from '@/utils/formatters';
 
 const props = defineProps({ padre: { type: Object, required: true } });
-const emit = defineEmits(['recargar', 'cerrar']);
+const emit = defineEmits(['recargar', 'cerrar', 'notificar']);
 
 const procesandoPago = ref(false);
 
 const enviarAbono = async () => {
-  if (!props.padre.nuevoAbono || props.padre.nuevoAbono <= 0) return alert("⚠️ Monto invalido.");
+  if (!props.padre.nuevoAbono || props.padre.nuevoAbono <= 0) {
+    emit('notificar', { tipo: 'warning', titulo: 'Monto Inválido', mensaje: 'Por favor ingresa un monto mayor a cero.' });
+    return;
+  }
   procesandoPago.value = true;
   try {
     await axios.post('/api/finanzas/abono', null, {
       params: { parentId: props.padre.id, monto: props.padre.nuevoAbono, metodoPago: props.padre.metodoPago, fecha: props.padre.fechaAbono }
     });
-    alert('✅ Abono registrado.');
+    emit('notificar', { tipo: 'success', titulo: 'Abono Registrado', mensaje: 'El abono se registró y se aplicó FIFO correctamente.' });
     emit('recargar');
     emit('cerrar');
   } catch (e) {
     console.error(e);
-    alert("❌ Error.");
+    emit('notificar', { tipo: 'danger', titulo: 'Error al Registrar', mensaje: 'Hubo un problema al registrar el abono.' });
   } finally {
     procesandoPago.value = false;
   }
