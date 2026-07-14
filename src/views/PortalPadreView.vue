@@ -15,10 +15,10 @@
 
     <div v-else class="portal-content">
       <!-- Encabezado del padre -->
-      <div class="card shadow-sm mb-4 border-0 text-white"
+      <div class="card shadow-sm mb-4 border-0 text-white text-center"
            :style="{ background: 'linear-gradient(135deg, #111827, #1f2937)' }">
         <div class="card-body">
-          <h4 class="mb-0">{{ padre.nombreCompleto }}</h4>
+          <h4 class="mb-0 text-white fw-bold">{{ padre.nombreCompleto }}</h4>
         </div>
       </div>
 
@@ -27,7 +27,8 @@
         <div class="col-md-4">
           <div class="card border-0 shadow-sm h-100">
             <div class="card-body text-center p-3">
-              <div class="text-muted small mb-1">Total a Pagar</div>                <div class="fs-3 fw-bold">
+              <div class="text-muted small mb-1">Total a Pagar</div>
+              <div class="fs-3 fw-bold text-dark">
                 ${{ formatearDinero(totalAPagar) }}
               </div>
             </div>
@@ -56,14 +57,14 @@
       <!-- Deportistas -->
       <div class="card shadow-sm mb-4 border-0">
         <div class="card-body">
-          <h5 class="card-title mb-3">&#128101; Deportistas</h5>
+          <h5 class="card-title mb-3 text-center">👥 Deportistas</h5>
           <div v-if="estudiantes.length === 0" class="text-muted text-center py-3">
             No hay deportistas registrados.
           </div>
           <div v-else class="row g-2">
             <div v-for="est in estudiantes" :key="est.id" class="col-md-6">
                 <div class="d-flex align-items-center p-2 rounded"
-                     style="background: #f8f9fa;">
+                     style="background: var(--bg-tertiary);">
                   <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2"
                        style="width: 36px; height: 36px; font-size: 14px; flex-shrink: 0; background: #f97316;">
                     {{ est.nombreCompleto ? est.nombreCompleto.charAt(0).toUpperCase() : '?' }}
@@ -72,7 +73,7 @@
                     <div class="fw-semibold small">{{ est.nombreCompleto }}</div>
                     <div class="text-muted" style="font-size: 12px;">
                       <span v-for="mat in (est.matriculas || []).slice(0, 1)" :key="mat.id || 0"
-                            class="badge rounded-pill px-2 py-1" 
+                            class="badge rounded-pill px-2 py-1"
                             :style="{ fontSize: '0.70rem', backgroundColor: colorDeNivel(mat.nivel), color: 'white' }">
                         {{ textoNivel(mat.nivel) || 'Sin nivel' }}
                       </span>
@@ -87,33 +88,88 @@
         </div>
       </div>
 
-      <!-- Últimas Clases Asistidas -->
-      <div class="card shadow-sm mb-4 border-0">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">🏆 Últimas Clases Asistidas</h5>
-        </div>
-        <div class="card-body p-0">
+      <!-- 1. Deudas pendientes (se oculta si no hay deudas) -->
+      <div v-if="deudas.length > 0" class="card shadow-sm mb-4 border-0">
+        <div class="card-body p-3">
+          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.15rem;">
+            <span>📋</span> Deudas Pendientes
+          </h5>
           <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0">
-              <thead class="table-light">
+            <table class="table table-hover align-middle mb-0 text-start">
+              <thead>
                 <tr>
-                  <th>Deportista</th>
-                  <th>Fecha</th>
-                  <th>Nivel / Grupo</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Deportista</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Fecha</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Concepto</th>
+                  <th class="text-muted fw-semibold py-2 text-end" style="font-size: 0.85rem;">Monto</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="ultimasClases.length === 0">
-                  <td colspan="3" class="text-center text-muted py-4">
-                    Aún no hay clases registradas para este periodo.
+                <tr v-for="deuda in deudas" :key="deuda.id">
+                  <td class="fw-semibold text-dark py-2" style="font-size: 0.85rem;">
+                    {{ deuda.student?.nombreCompleto || deuda.nombreEstudianteHistorico || 'Deportista' }}
+                  </td>
+                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                    {{ formatearFecha(deuda.fecha) }}
+                  </td>
+                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                    {{ descripcionNivel(deuda.nivel) }}
+                  </td>
+                  <td class="fw-bold text-dark py-2 text-end" style="font-size: 0.85rem;">
+                    ${{ formatearDinero(deuda.precioCobrado) }}
                   </td>
                 </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- Totales / Desglose -->
+          <div class="bg-light p-3 border-top mt-3 rounded-2">
+            <div class="d-flex justify-content-between text-muted mb-2">
+              <span>Subtotal de clases:</span>
+              <span class="fw-semibold text-dark">${{ formatearDinero(subtotalDeudas) }}</span>
+            </div>
+            <div v-if="Number(padre.saldoAbono || 0) > 0" class="d-flex justify-content-between text-muted mb-2">
+              <span>Menos Abono aplicado:</span>
+              <span class="text-success fw-semibold">-${{ formatearDinero(padre.saldoAbono || 0) }}</span>
+            </div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fs-5 fw-bold text-dark">Total a pagar:</span>
+              <span class="fs-4 fw-bold text-dark">${{ formatearDinero(totalAPagar) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Últimas Clases Asistidas -->
+      <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body p-3">
+          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.15rem;">
+            <span>🏆</span> Últimas Clases Asistidas
+          </h5>
+          <div v-if="ultimasClases.length === 0" class="text-center py-3 text-muted">
+            Aún no hay clases registradas para este periodo.
+          </div>
+          <div v-else class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-start">
+              <thead>
+                <tr>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Deportista</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Fecha</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Nivel / Grupo</th>
+                </tr>
+              </thead>
+              <tbody>
                 <tr v-for="clase in ultimasClases" :key="clase.id">
-                  <td>{{ clase.student?.nombreCompleto || clase.nombreEstudianteHistorico || '-' }}</td>
-                  <td>{{ formatearFecha(clase.fecha) }}</td>
-                  <td>
-                    <span class="badge rounded-pill px-2 py-1"
-                          :style="{ fontSize: '0.75rem', backgroundColor: colorDeNivel(clase.nivel), color: 'white' }">
+                  <td class="fw-semibold text-dark py-2" style="font-size: 0.85rem;">
+                    {{ clase.student?.nombreCompleto || clase.nombreEstudianteHistorico || '-' }}
+                  </td>
+                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                    {{ formatearFecha(clase.fecha) }}
+                  </td>
+                  <td class="py-2">
+                    <span class="badge rounded-pill px-2 py-1 text-white fw-bold shadow-sm"
+                          :style="{ fontSize: '0.68rem', backgroundColor: colorDeNivel(clase.nivel) }">
                       {{ textoNivel(clase.nivel) || 'Clase' }}
                     </span>
                   </td>
@@ -124,84 +180,38 @@
         </div>
       </div>
 
-      <!-- Deudas pendientes -->
-      <div class="card shadow-sm mb-4 border-0">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">&#128203; Deudas Pendientes</h5>
-        </div>
-        <div class="card-body p-0">
-          <div v-if="deudas.length === 0" class="text-center py-4 text-muted">
-            No hay deudas pendientes. &#127881;
-          </div>
-          <div v-else>
-            <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Deportista</th>
-                    <th>Fecha</th>
-                    <th>Concepto</th>
-                    <th class="text-end">Monto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="deuda in deudas" :key="deuda.id">
-                    <td>{{ deuda.student?.nombreCompleto || deuda.nombreEstudianteHistorico || '-' }}</td>
-                    <td>{{ formatearFecha(deuda.fecha) }}</td>
-                    <td>{{ descripcionNivel(deuda.nivel) }}</td>
-                    <td class="text-end fw-semibold">${{ formatearDinero(deuda.precioCobrado) }}</td>
-                  </tr>
-                </tbody>
-                <tfoot class="table-light">
-                  <tr>
-                    <td colspan="3" class="text-end text-muted">Subtotal de clases:</td>
-                    <td class="text-end fw-semibold">${{ formatearDinero(subtotalDeudas) }}</td>
-                  </tr>
-                  <tr v-if="Number(padre.saldoAbono || 0) > 0">
-                    <td colspan="3" class="text-end text-muted">Menos saldo a favor (Abono):</td>
-                    <td class="text-end text-success fw-semibold">-${{ formatearDinero(padre.saldoAbono || 0) }}</td>
-                  </tr>
-                  <tr class="fw-bold">
-                    <td colspan="3" class="text-end fs-5 text-dark">Total a pagar:</td>
-                    <td class="text-end fs-5 text-dark fw-bold">${{ formatearDinero(totalAPagar) }}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Historial financiero -->
-      <div class="card shadow-sm border-0">
-        <div class="card-header bg-white">
-          <h5 class="mb-0">&#128202; Historial de Movimientos</h5>
-        </div>
-        <div class="card-body p-0">
-          <div v-if="financialLogs.length === 0" class="text-center py-4 text-muted">
+      <!-- 3. Historial de Movimientos -->
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.15rem;">
+            <span>📊</span> Historial de Movimientos
+          </h5>
+          <div v-if="financialLogs.length === 0" class="text-center py-3 text-muted">
             No hay movimientos registrados.
           </div>
-          <div v-else>
-            <div class="table-responsive">
-              <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Concepto</th>
-                    <th class="text-end">Monto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="log in logsLimitados" :key="log.id">
-                    <td>{{ formatearFecha(log.fecha) }}</td>
-                    <td>{{ descripcionMovimiento(log) }}</td>
-                    <td class="text-end fw-semibold">
-                      {{ log.tipoMovimiento === 'INGRESO_ABONO' ? '+' : '-' }}${{ formatearDinero(log.monto) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div v-else class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-start">
+              <thead>
+                <tr>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Movimiento</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Fecha</th>
+                  <th class="text-muted fw-semibold py-2 text-end" style="font-size: 0.85rem;">Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="log in logsLimitados" :key="log.id">
+                  <td class="fw-semibold text-dark py-2" style="font-size: 0.85rem;">
+                    {{ descripcionMovimiento(log) }}
+                  </td>
+                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                    {{ formatearFecha(log.fecha) }}
+                  </td>
+                  <td class="fw-bold text-success py-2 text-end" style="font-size: 0.85rem;">
+                    +${{ formatearDinero(log.monto) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -358,12 +368,13 @@ onMounted(async () => {
 
 <style scoped>
 .portal-container {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   min-height: 100vh;
 }
 
 .card {
+  border: 1px solid var(--border-primary) !important;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -372,17 +383,30 @@ onMounted(async () => {
   border-bottom: none;
 }
 
-.table > :not(caption) > * > * {
-  vertical-align: middle;
-  padding: 0.6rem 0.75rem;
-}
-
-.table tbody tr:hover {
-  filter: brightness(0.97);
-}
-
 .spinner-border {
   width: 3rem;
   height: 3rem;
+}
+
+.list-group-item {
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.list-group-item:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.bg-light {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-secondary) !important;
+}
+
+.portal-list-item {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
 }
 </style>

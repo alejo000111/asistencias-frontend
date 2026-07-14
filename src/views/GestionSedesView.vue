@@ -101,8 +101,8 @@
         </div>
 
         <div class="d-flex gap-2 mt-3 justify-content-end">
-          <AppButton variant="outline" size="lg" @click="guardar">💾 Guardar</AppButton>
-          <AppButton variant="outline" size="lg" @click="cancelar">✖ Cancelar</AppButton>
+          <AppButton variant="outline" class="btn-sedes-save" size="lg" @click="guardar">💾 Guardar</AppButton>
+          <AppButton variant="outline" class="btn-sedes-cancel" size="lg" @click="cancelar">✖ Cancelar</AppButton>
         </div>
       </div>
     </div>
@@ -264,10 +264,10 @@
                     </div>
 
                     <div class="d-flex gap-2 mt-3 justify-content-end">
-                      <AppButton variant="outline" size="md" @click="guardar">
+                      <AppButton variant="outline" class="btn-sedes-save" size="md" @click="guardar">
                         💾 Guardar Cambios
                       </AppButton>
-                      <AppButton variant="outline" size="md" @click="cancelar">
+                      <AppButton variant="outline" class="btn-sedes-cancel" size="md" @click="cancelar">
                         ✖ Cancelar
                       </AppButton>
                     </div>
@@ -474,5 +474,25 @@ onMounted(() => cargarSedes());
 <style scoped>
 .edit-row td {
   border-bottom: 2px solid var(--orange-200) !important;
+}
+
+.btn-sedes-save {
+  border-color: var(--color-success) !important;
+}
+
+.btn-sedes-save:hover:not(:disabled) {
+  background-color: var(--color-success) !important;
+  border-color: var(--color-success) !important;
+  color: white !important;
+}
+
+.btn-sedes-cancel {
+  border-color: var(--color-danger) !important;
+}
+
+.btn-sedes-cancel:hover {
+  background-color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
+  color: white !important;
 }
 </style>

@@ -34,7 +34,7 @@
                 class="tarjeta-cliente__btn-accion">⚙️ Editar</button>
       </div>
       <div v-if="padre.deudaTotal > 0" class="tarjeta-cliente__deudas">
-        <button @click="toggleDeudas(); $emit('toggleCardForm', { clientId: padre.id, formType: null })"
+        <button @click="toggleDeudas"
                 class="tarjeta-cliente__btn-accion tarjeta-cliente__btn-full">
           {{ mostrarDeudas ? '⬆ Ocultar' : '💸 Clases por Pagar' }}
         </button>
@@ -42,7 +42,7 @@
           <ul>
             <li v-for="deuda in listaDeudas" :key="deuda.id" class="tarjeta-cliente__deuda-item">
               <div>
-                <span class="fw-semibold">• {{ deuda.student.nombreCompleto }}</span>
+                <span class="fw-semibold">• {{ deuda.student?.nombreCompleto || deuda.nombreEstudianteHistorico || 'Deportista' }}</span>
                 <br><small class="text-muted">{{ formatearFecha(deuda.fecha) }}</small>
               </div>
               <span class="badge-premium" style="background: var(--gray-200); color: var(--gray-800);">${{ formatearDinero(deuda.precioCobrado) }}</span>
@@ -52,9 +52,9 @@
       </div>
     </div>
     <div v-show="activeFormType" class="tarjeta-cliente__panel">
-      <AbonoForm v-if="activeFormType === 'abono'" :padre="padre" @recargar="$emit('recargar')" @cerrar="$emit('toggleCardForm', { clientId: padre.id, formType: null })" />
-      <HistorialForm v-if="activeFormType === 'historial'" :parent-id="padre.id" @recargar="$emit('recargar')" />
-      <EditForm v-if="activeFormType === 'edit'" :padre="editPadre" :sedes="sedes" @recargar="$emit('recargar')" @cancelar="cancelarEdicion" />
+      <AbonoForm v-if="activeFormType === 'abono'" :padre="padre" @recargar="$emit('recargar')" @cerrar="$emit('toggleCardForm', { clientId: padre.id, formType: null })" @notificar="e => $emit('notificar', e)" />
+      <HistorialForm v-if="activeFormType === 'historial'" :parent-id="padre.id" @recargar="$emit('recargar')" @notificar="e => $emit('notificar', e)" />
+      <EditForm v-if="activeFormType === 'edit'" :padre="editPadre" :sedes="sedes" @recargar="$emit('recargar')" @cancelar="cancelarEdicion" @notificar="e => $emit('notificar', e)" />
     </div>
   </div>
 </template>
@@ -68,7 +68,7 @@ import HistorialForm from './HistorialForm.vue';
 import EditForm from './EditForm.vue';
 
 const props = defineProps(['padre', 'activeFormType', 'activeDeudasId']);
-const emit = defineEmits(['toggleCardForm', 'toggleDeudas', 'clienteActualizado', 'recargar']);
+const emit = defineEmits(['toggleCardForm', 'toggleDeudas', 'clienteActualizado', 'recargar', 'notificar']);
 
 import { useSedes } from '@/utils/useSedes';
 const { sedes, cargarSedes } = useSedes();
@@ -86,8 +86,14 @@ const mostrarDeudas = computed(() => props.activeDeudasId === props.padre.id);
 const toggleDeudas = async () => {
   emit('toggleDeudas', props.padre.id);
   if (!mostrarDeudas.value) {
-    try { const r = await axios.get('/api/finanzas/deudas/' + props.padre.id); listaDeudas.value = r.data; }
-    catch (e) { console.error("Error:", e); }
+    emit('toggleCardForm', { clientId: props.padre.id, formType: null });
+    try { 
+      const r = await axios.get('/api/finanzas/deudas/' + props.padre.id); 
+      listaDeudas.value = r.data; 
+    }
+    catch (e) { 
+      console.error("Error:", e); 
+    }
   }
 };
 
@@ -135,8 +141,19 @@ const cancelarEdicion = () => emit('toggleCardForm', { clientId: props.padre.id,
 
 const copiarLink = async () => {
   const url = window.location.origin + '/portal/' + props.padre.secretToken;
-  try { await navigator.clipboard.writeText(url); alert('✅ Enlace copiado'); }
-  catch { const ta = document.createElement('textarea'); ta.value = url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('✅ Enlace copiado'); }
+  try { 
+    await navigator.clipboard.writeText(url); 
+    emit('notificar', { tipo: 'success', titulo: 'Enlace Copiado', mensaje: 'El enlace del portal se ha copiado al portapapeles.' });
+  }
+  catch { 
+    const ta = document.createElement('textarea'); 
+    ta.value = url; 
+    document.body.appendChild(ta); 
+    ta.select(); 
+    document.execCommand('copy'); 
+    document.body.removeChild(ta); 
+    emit('notificar', { tipo: 'success', titulo: 'Enlace Copiado', mensaje: 'El enlace del portal se ha copiado al portapapeles.' });
+  }
 };
 </script>
 
@@ -158,6 +175,7 @@ const copiarLink = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border-primary);
 }
@@ -220,24 +238,26 @@ const copiarLink = async () => {
 .tarjeta-cliente__btn-link {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 8px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: #6b7280;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  background: var(--gray-100);
+  border: 1px solid var(--gray-300);
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all var(--transition-fast);
   white-space: nowrap;
   line-height: 1.4;
 }
 
 .tarjeta-cliente__btn-link:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #374151;
+  background: var(--gray-200);
+  border-color: var(--gray-400);
+  color: var(--gray-900);
+  transform: translateY(-1px);
 }
 
 .tarjeta-cliente__title {
@@ -323,6 +343,7 @@ const copiarLink = async () => {
   padding: var(--space-1) 0;
   border-bottom: 1px solid var(--border-primary);
   font-size: 0.8125rem;
+  color: var(--text-primary);
 }
 
 .tarjeta-cliente__deuda-item:last-child {

@@ -768,13 +768,13 @@ a:hover {
 
   .tarjeta-cliente__btn-link {
     background: var(--bg-tertiary) !important;
-    border-color: var(--border-primary) !important;
-    color: var(--text-secondary) !important;
+    border-color: var(--border-secondary) !important;
+    color: var(--text-primary) !important;
   }
 
   .tarjeta-cliente__btn-link:hover {
-    background: #3f3f46 !important;
-    color: var(--text-primary) !important;
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-primary) !important;
   }
 
   .tarjeta-cliente__deudas-list {

@@ -36,6 +36,10 @@
           <RouterLink v-if="esAdmin" class="navbar-premium__link" to="/gestion-empleados" @click="menuAbierto = false">
             👤 Empleados
           </RouterLink>
+          <!-- Botón Salir para móviles -->
+          <button class="navbar-premium__link navbar-premium__logout-mobile border-0 bg-transparent text-start w-100 d-md-none" @click="cerrarSesionAndCloseMenu" style="cursor: pointer;">
+            🚪 Salir
+          </button>
         </div>
 
         <div class="navbar-premium__right">
@@ -167,12 +171,17 @@ onMounted(() => {
   }
 });
 
+const cerrarSesionAndCloseMenu = () => {
+  menuAbierto.value = false;
+  cerrarSesion();
+};
+
 const cerrarSesion = () => {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('authRole');
-  localStorage.removeItem('authSedes');
-  localStorage.removeItem('authUsername');
-  router.push({ name: 'login' });
+  localStorage.clear();
+  autenticado.value = false;
+  esAdmin.value = false;
+  nombreUsuario.value = '';
+  router.push('/login');
 };
 </script>
 
@@ -317,32 +326,32 @@ const cerrarSesion = () => {
   }
 }
 
-/* Botón Salir ghost ultra-sutil */
+/* Botón Salir ghost premium */
 .navbar-premium__logout {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   background: none;
   border: none;
-  color: var(--gray-600);
+  color: var(--gray-400);
   font-family: var(--font-sans);
-  font-size: 0.8125rem;
-  font-weight: 400;
+  font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
-  padding: 8px 10px;
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   line-height: 1;
 }
 
 .navbar-premium__logout:hover {
-  color: var(--gray-300);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .navbar-premium__logout-icon {
   font-size: 0.9rem;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .navbar-premium__logout:hover .navbar-premium__logout-icon {
@@ -351,14 +360,14 @@ const cerrarSesion = () => {
 
 @media (max-width: 768px) {
   .navbar-premium__logout {
-    padding: 12px;
+    padding: var(--space-3);
   }
   .navbar-premium__logout-text {
     display: none;
   }
   .navbar-premium__logout-icon {
     font-size: 1.1rem;
-    opacity: 0.7;
+    opacity: 0.8;
   }
 }
 
@@ -425,28 +434,7 @@ const cerrarSesion = () => {
   }
 }
 
-/* Pequeño glow decorativo alrededor del botón */
-.theme-fab::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: var(--radius-full);
-  background: conic-gradient(
-    from 180deg,
-    transparent 0%,
-    var(--orange-500) 25%,
-    transparent 50%,
-    var(--orange-500) 75%,
-    transparent 100%
-  );
-  opacity: 0.15;
-  z-index: -1;
-  transition: opacity var(--transition-normal);
-}
 
-.theme-fab:hover::after {
-  opacity: 0.35;
-}
 
 /* ============================================================
    📐 MAIN LAYOUT
