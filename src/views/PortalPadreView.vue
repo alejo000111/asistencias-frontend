@@ -17,8 +17,8 @@
       <!-- Encabezado del padre -->
       <div class="card shadow-sm mb-4 border-0 text-white text-center"
            :style="{ background: 'linear-gradient(135deg, #111827, #1f2937)' }">
-        <div class="card-body">
-          <h4 class="mb-0 text-white fw-bold">{{ padre.nombreCompleto }}</h4>
+        <div class="card-body py-4">
+          <h3 class="mb-0 text-white fw-bold" style="font-size: 1.65rem;">{{ padre.nombreCompleto }}</h3>
         </div>
       </div>
 
@@ -27,7 +27,7 @@
         <div class="col-md-4">
           <div class="card border-0 shadow-sm h-100">
             <div class="card-body text-center p-3">
-              <div class="text-muted small mb-1">Total a Pagar</div>
+              <div class="text-muted mb-1" style="font-size: 0.95rem;">Total a Pagar</div>
               <div class="fs-3 fw-bold text-dark">
                 ${{ formatearDinero(totalAPagar) }}
               </div>
@@ -37,7 +37,7 @@
         <div class="col-md-4">
           <div class="card border-0 shadow-sm h-100">
             <div class="card-body text-center p-3">
-              <div class="text-muted small mb-1">Saldo a Favor (Abono)</div>
+              <div class="text-muted mb-1" style="font-size: 0.95rem;">Saldo a Favor (Abono)</div>
               <div class="fs-3 fw-bold text-success">
                 ${{ formatearDinero(padre.saldoAbono || 0) }}
               </div>
@@ -47,7 +47,7 @@
         <div class="col-md-4">
           <div class="card border-0 shadow-sm h-100">
             <div class="card-body text-center p-3">
-              <div class="text-muted small mb-1">Deportistas</div>
+              <div class="text-muted mb-1" style="font-size: 0.95rem;">Deportistas</div>
               <div class="fs-3 fw-bold text-dark">{{ estudiantes.length }}</div>
             </div>
           </div>
@@ -57,7 +57,7 @@
       <!-- Deportistas -->
       <div class="card shadow-sm mb-4 border-0">
         <div class="card-body">
-          <h5 class="card-title mb-3 text-center">👥 Deportistas</h5>
+          <h4 class="card-title mb-3 text-center" style="font-size: 1.35rem; font-weight: 600;">👥 Deportistas</h4>
           <div v-if="estudiantes.length === 0" class="text-muted text-center py-3">
             No hay deportistas registrados.
           </div>
@@ -66,20 +66,20 @@
                 <div class="d-flex align-items-center p-2 rounded"
                      style="background: var(--bg-tertiary);">
                   <div class="rounded-circle text-white d-flex align-items-center justify-content-center me-2"
-                       style="width: 36px; height: 36px; font-size: 14px; flex-shrink: 0; background: #f97316;">
+                       style="width: 40px; height: 40px; font-size: 16px; flex-shrink: 0; background: #f97316; font-weight: bold;">
                     {{ est.nombreCompleto ? est.nombreCompleto.charAt(0).toUpperCase() : '?' }}
                   </div>
                   <div>
-                    <div class="fw-semibold small">{{ est.nombreCompleto }}</div>
-                    <div class="text-muted" style="font-size: 12px;">
+                    <div class="fw-semibold" style="font-size: 1.05rem;">{{ est.nombreCompleto }}</div>
+                    <div class="text-muted" style="font-size: 14px;">
                       <span v-for="mat in (est.matriculas || []).slice(0, 1)" :key="mat.id || 0"
                             class="badge rounded-pill px-2 py-1"
-                            :style="{ fontSize: '0.70rem', backgroundColor: colorDeNivel(mat.nivel), color: 'white' }">
+                            :style="{ fontSize: '0.80rem', backgroundColor: colorDeNivel(mat.nivel), color: 'white' }">
                         {{ textoNivel(mat.nivel) || 'Sin nivel' }}
                       </span>
                       <span v-if="!(est.matriculas && est.matriculas.length > 0)"
                             class="badge rounded-pill px-2 py-1 bg-secondary"
-                            style="font-size: 0.70rem;">Sin nivel</span>
+                            style="font-size: 0.80rem;">Sin nivel</span>
                     </div>
                   </div>
                 </div>
@@ -91,31 +91,31 @@
       <!-- 1. Deudas pendientes (se oculta si no hay deudas) -->
       <div v-if="deudas.length > 0" class="card shadow-sm mb-4 border-0">
         <div class="card-body p-3">
-          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.15rem;">
+          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.3rem;">
             <span>📋</span> Deudas Pendientes
           </h5>
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 text-start">
               <thead>
                 <tr>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Deportista</th>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Fecha</th>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Concepto</th>
-                  <th class="text-muted fw-semibold py-2 text-end" style="font-size: 0.85rem;">Monto</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Deportista</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Fecha</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Concepto</th>
+                  <th class="text-muted fw-semibold py-2 text-end" style="font-size: 0.95rem;">Monto</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="deuda in deudas" :key="deuda.id">
-                  <td class="fw-semibold text-dark py-2" style="font-size: 0.85rem;">
+                  <td class="fw-semibold text-dark py-2" style="font-size: 0.95rem;">
                     {{ deuda.student?.nombreCompleto || deuda.nombreEstudianteHistorico || 'Deportista' }}
                   </td>
-                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                  <td class="text-secondary py-2" style="font-size: 0.95rem;">
                     {{ formatearFecha(deuda.fecha) }}
                   </td>
-                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                  <td class="text-secondary py-2" style="font-size: 0.95rem;">
                     {{ descripcionNivel(deuda.nivel) }}
                   </td>
-                  <td class="fw-bold text-dark py-2 text-end" style="font-size: 0.85rem;">
+                  <td class="fw-bold text-dark py-2 text-end" style="font-size: 0.95rem;">
                     ${{ formatearDinero(deuda.precioCobrado) }}
                   </td>
                 </tr>
@@ -123,7 +123,7 @@
             </table>
           </div>
           <!-- Totales / Desglose -->
-          <div class="bg-light p-3 border-top mt-3 rounded-2">
+          <div class="bg-light p-3 border-top mt-3 rounded-2" style="font-size: 0.95rem;">
             <div class="d-flex justify-content-between text-muted mb-2">
               <span>Subtotal de clases:</span>
               <span class="fw-semibold text-dark">${{ formatearDinero(subtotalDeudas) }}</span>
@@ -134,8 +134,8 @@
             </div>
             <hr class="my-2">
             <div class="d-flex justify-content-between align-items-center">
-              <span class="fs-5 fw-bold text-dark">Total a pagar:</span>
-              <span class="fs-4 fw-bold text-dark">${{ formatearDinero(totalAPagar) }}</span>
+              <span class="fs-5 fw-bold text-dark" style="font-size: 1.25rem;">Total a pagar:</span>
+              <span class="fs-3 fw-bold text-dark" style="font-size: 1.5rem;">${{ formatearDinero(totalAPagar) }}</span>
             </div>
           </div>
         </div>
@@ -144,32 +144,32 @@
       <!-- 2. Últimas Clases Asistidas -->
       <div class="card shadow-sm mb-4 border-0">
         <div class="card-body p-3">
-          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.15rem;">
+          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.3rem;">
             <span>🏆</span> Últimas Clases Asistidas
           </h5>
-          <div v-if="ultimasClases.length === 0" class="text-center py-3 text-muted">
+          <div v-if="ultimasClases.length === 0" class="text-center py-3 text-muted" style="font-size: 0.95rem;">
             Aún no hay clases registradas para este periodo.
           </div>
           <div v-else class="table-responsive">
             <table class="table table-hover align-middle mb-0 text-start">
               <thead>
                 <tr>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Deportista</th>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Fecha</th>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Nivel / Grupo</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Deportista</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Fecha</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Nivel / Grupo</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="clase in ultimasClases" :key="clase.id">
-                  <td class="fw-semibold text-dark py-2" style="font-size: 0.85rem;">
+                  <td class="fw-semibold text-dark py-2" style="font-size: 0.95rem;">
                     {{ clase.student?.nombreCompleto || clase.nombreEstudianteHistorico || '-' }}
                   </td>
-                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                  <td class="text-secondary py-2" style="font-size: 0.95rem;">
                     {{ formatearFecha(clase.fecha) }}
                   </td>
                   <td class="py-2">
                     <span class="badge rounded-pill px-2 py-1 text-white fw-bold shadow-sm"
-                          :style="{ fontSize: '0.68rem', backgroundColor: colorDeNivel(clase.nivel) }">
+                          :style="{ fontSize: '0.78rem', backgroundColor: colorDeNivel(clase.nivel) }">
                       {{ textoNivel(clase.nivel) || 'Clase' }}
                     </span>
                   </td>
@@ -183,30 +183,30 @@
       <!-- 3. Historial de Movimientos -->
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-3">
-          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.15rem;">
+          <h5 class="fw-bold text-dark d-flex align-items-center justify-content-center gap-2 mb-3" style="font-size: 1.3rem;">
             <span>📊</span> Historial de Movimientos
           </h5>
-          <div v-if="financialLogs.length === 0" class="text-center py-3 text-muted">
+          <div v-if="financialLogs.length === 0" class="text-center py-3 text-muted" style="font-size: 0.95rem;">
             No hay movimientos registrados.
           </div>
           <div v-else class="table-responsive">
             <table class="table table-hover align-middle mb-0 text-start">
               <thead>
                 <tr>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Movimiento</th>
-                  <th class="text-muted fw-semibold py-2" style="font-size: 0.85rem;">Fecha</th>
-                  <th class="text-muted fw-semibold py-2 text-end" style="font-size: 0.85rem;">Monto</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Movimiento</th>
+                  <th class="text-muted fw-semibold py-2" style="font-size: 0.95rem;">Fecha</th>
+                  <th class="text-muted fw-semibold py-2 text-end" style="font-size: 0.95rem;">Monto</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="log in logsLimitados" :key="log.id">
-                  <td class="fw-semibold text-dark py-2" style="font-size: 0.85rem;">
+                  <td class="fw-semibold text-dark py-2" style="font-size: 0.95rem;">
                     {{ descripcionMovimiento(log) }}
                   </td>
-                  <td class="text-secondary py-2" style="font-size: 0.85rem;">
+                  <td class="text-secondary py-2" style="font-size: 0.95rem;">
                     {{ formatearFecha(log.fecha) }}
                   </td>
-                  <td class="fw-bold text-success py-2 text-end" style="font-size: 0.85rem;">
+                  <td class="fw-bold text-success py-2 text-end" style="font-size: 0.95rem;">
                     +${{ formatearDinero(log.monto) }}
                   </td>
                 </tr>
@@ -218,7 +218,7 @@
 
       <!-- Footer -->
       <div class="text-center mt-4 mb-3">
-        <small class="text-muted">Asistencias ERP &mdash; Portal de Padres</small>
+        <small class="text-muted" style="font-size: 0.85rem;">Asistencias ERP &mdash; Portal de Padres</small>
       </div>
     </div>
   </div>
@@ -371,6 +371,7 @@ onMounted(async () => {
   max-width: 1000px;
   margin: 0 auto;
   min-height: 100vh;
+  font-size: 1.05rem;
 }
 
 .card {

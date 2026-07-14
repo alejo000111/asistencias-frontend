@@ -382,10 +382,10 @@ const cerrarSesion = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
   border: none;
   border-radius: var(--radius-full);
   background: var(--navbar-bg);
@@ -413,7 +413,7 @@ const cerrarSesion = () => {
 }
 
 .theme-fab__icon {
-  font-size: 1.35rem;
+  font-size: 1.95rem;
   line-height: 1;
   transition: transform var(--transition-normal);
   display: inline-block;
@@ -431,6 +431,20 @@ const cerrarSesion = () => {
   100% {
     transform: rotate(0deg) scale(1);
     opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .theme-fab {
+    width: 62px;
+    height: 62px;
+    min-width: 62px;
+    min-height: 62px;
+    bottom: 20px;
+    right: 20px;
+  }
+  .theme-fab__icon {
+    font-size: 2.2rem;
   }
 }
 
