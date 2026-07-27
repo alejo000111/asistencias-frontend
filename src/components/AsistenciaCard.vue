@@ -21,7 +21,7 @@
       </div>
 
       <button @click="emit('toggle', grupo.id)" class="btn btn-outline-secondary btn-sm w-100 fw-bold text-dark" style="border-radius: 8px;">
-        {{ isOpen ? '⬆ Ocultar Alumnos' : '👀 Ver Alumnos (' + grupo.estudiantes.length + ')' }}
+        {{ isOpen ? '⬆ Ocultar Deportistas' : '👀 Ver Deportistas (' + grupo.estudiantes.length + ')' }}
       </button>
 
       <div v-if="isOpen" class="text-start w-100" style="padding-top: 12px; border-top: 1px solid #f3f4f6;">
@@ -33,7 +33,7 @@
                 • {{ alumno.nombre }}
                 <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearDinero(alumno.precioCobrado) }})</span>
               </div>
-              <button v-if="esAdmin" @click="$emit('eliminarRegistro', alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
+              <button v-if="esAdmin" @click="$emit('eliminarRegistro', alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar deportista">✖</button>
             </li>
           </ul>
         </div>
@@ -46,7 +46,7 @@
                 • {{ alumno.nombre }}
                 <span v-if="alumno.esPrecioEspecial" class="text-muted fw-semibold ms-1" style="font-size: 0.70rem;">(Precio Especial: ${{ formatearDinero(alumno.precioCobrado) }})</span>
               </div>
-              <button v-if="esAdmin" @click="$emit('eliminarRegistro', alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar alumno">✖</button>
+              <button v-if="esAdmin" @click="$emit('eliminarRegistro', alumno.idAsistencia)" class="btn btn-sm text-danger p-0" title="Quitar deportista">✖</button>
             </li>
           </ul>
         </div>

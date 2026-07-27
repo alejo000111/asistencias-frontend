@@ -1,7 +1,7 @@
 <template>
   <div class="bg-white p-3 shadow-sm panel-edicion">
     <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
-      <h6 class="text-secondary fw-bold mb-0">Editar Padre</h6>
+      <h6 class="text-secondary fw-bold mb-0">Editar Padre / Acudiente</h6>
       <button v-if="esAdmin && padre.estado === 'INACTIVO'" @click="eliminarPadre" class="btn btn-sm btn-outline-danger py-0 px-2 fw-bold">🗑️ Eliminar Definitivamente</button>
     </div>
     <input type="text" v-model="padre.editNombre" class="form-control form-control-sm mb-2" placeholder="Nombre Completo">
@@ -10,11 +10,17 @@
       <option value="ACTIVO">🟢 ACTIVO</option>
       <option value="INACTIVO">🔴 INACTIVO</option>
     </select>
-    <h6 class="text-secondary fw-bold border-bottom pb-1">Editar Deportistas</h6>
-    <div v-for="(hijo, idx) in padre.students" :key="hijo.id" class="mb-3 border-start border-3 ps-2 position-relative" style="border-color: #cbd5e1 !important;">
+
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-2">
+      <h6 class="text-secondary fw-bold mb-0">Deportistas / Hijos</h6>
+      <button @click="agregarDeportistaLocal" class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold">+ Agregar Deportista</button>
+    </div>
+
+    <div v-for="(hijo, idx) in padre.students" :key="hijo.id || ('nuevo-' + idx)" class="mb-3 border-start border-3 ps-2 position-relative" style="border-color: #cbd5e1 !important;">
       <div class="d-flex gap-2 mb-1">
         <input type="text" v-model="hijo.editNombre" class="form-control form-control-sm" placeholder="Nombre del Deportista">
-        <button v-if="esAdmin && padre.estado === 'INACTIVO'" @click="eliminarDeportista(hijo.id, hijo.editNombre)" class="app-btn app-btn--danger app-btn--sm" style="padding: 2px 8px;">🗑️</button>
+        <button v-if="hijo.id && esAdmin && padre.estado === 'INACTIVO'" @click="eliminarDeportista(hijo.id, hijo.editNombre)" class="app-btn app-btn--danger app-btn--sm" style="padding: 2px 8px;">🗑️</button>
+        <button v-if="!hijo.id" @click="quitarDeportistaNuevo(idx)" class="app-btn app-btn--secondary app-btn--sm" style="padding: 2px 8px;">❌</button>
       </div>
       <div class="d-flex gap-1 mt-1">
         <input type="date" v-model="hijo.editFechaNacimiento" @change="calcularEdad(hijo)" class="form-control form-control-sm w-50">
@@ -27,15 +33,18 @@
             <input type="checkbox" :id="'chk-' + idx + '-' + s.id" :value="s.id" v-model="hijo.editSedeIds" class="form-check-input" @change="sincronizarMatricula(hijo, s.id)">
             <label :for="'chk-' + idx + '-' + s.id" class="form-check-label fw-bold small">{{ s.nombre }}</label>
           </div>
-          <select v-if="hijo.editSedeIds.includes(s.id)" v-model="hijo.editNiveles[s.id]" class="form-select form-select-sm mt-1 fw-bold" style="max-width: 220px;">
+          <select v-if="hijo.editSedeIds && hijo.editSedeIds.includes(s.id)" v-model="hijo.editNiveles[s.id]" class="form-select form-select-sm mt-1 fw-bold" style="max-width: 240px;">
             <option value="" disabled>Selecciona grupo...</option>
             <template v-for="g in (s.grupos || [])" :key="g.nombre">
-              <option v-if="g && g.nombre && g.nombre.trim() !== ''" :value="(g.emoji || '') + ' ' + g.nombre">{{ g.emoji ? g.emoji + ' ' : '' }}{{ g.nombre }}</option>
+              <option v-if="g && g.nombre && g.nombre.trim() !== ''" :value="(g.emoji ? (g.emoji + ' ') : '') + g.nombre">
+                {{ g.emoji ? g.emoji + ' ' : '' }}{{ g.nombre }}
+              </option>
             </template>
           </select>
         </div>
       </div>
     </div>
+
     <div class="d-flex gap-3 mt-4 pt-3 border-top">
       <AppButton variant="outline" size="md" icon="✖" class="flex-fill" @click="$emit('cancelar')">Cancelar</AppButton>
       <AppButton variant="outline" size="md" icon="💾" class="flex-fill" @click="guardarEdicion">Guardar</AppButton>
@@ -60,21 +69,70 @@ const calcularEdad = (h) => {
   h.editEdad = e >= 0 ? e : 0;
 };
 
+const agregarDeportistaLocal = () => {
+  if (!props.padre.students) {
+    props.padre.students = [];
+  }
+  const primeraSede = props.sedes && props.sedes.length > 0 ? props.sedes.find(s => s.activa !== false) : null;
+  const primerGrupo = primeraSede && primeraSede.grupos && primeraSede.grupos.length > 0 ? primeraSede.grupos[0] : null;
+
+  const editSedeIds = primeraSede ? [primeraSede.id] : [];
+  const editNiveles = {};
+  if (primeraSede && primerGrupo) {
+    editNiveles[primeraSede.id] = (primerGrupo.emoji ? primerGrupo.emoji + ' ' : '') + primerGrupo.nombre;
+  }
+
+  props.padre.students.push({
+    id: null,
+    editNombre: '',
+    editEdad: 10,
+    editFechaNacimiento: '',
+    editSedeIds: editSedeIds,
+    editNiveles: editNiveles
+  });
+};
+
+const quitarDeportistaNuevo = (idx) => {
+  props.padre.students.splice(idx, 1);
+};
+
 const sincronizarMatricula = (hijo, sedeId) => {
-  if (!hijo.editSedeIds.includes(sedeId)) { delete hijo.editNiveles[sedeId]; }
-  else { hijo.editNiveles[sedeId] = ''; }
+  if (!hijo.editSedeIds) hijo.editSedeIds = [];
+  if (!hijo.editNiveles) hijo.editNiveles = {};
+
+  if (!hijo.editSedeIds.includes(sedeId)) {
+    delete hijo.editNiveles[sedeId];
+  } else {
+    const targetSede = props.sedes.find(s => s.id === sedeId);
+    if (targetSede && targetSede.grupos && targetSede.grupos.length > 0) {
+      const g0 = targetSede.grupos[0];
+      hijo.editNiveles[sedeId] = (g0.emoji ? g0.emoji + ' ' : '') + g0.nombre;
+    } else {
+      hijo.editNiveles[sedeId] = '';
+    }
+  }
 };
 
 const guardarEdicion = async () => {
+  if (!props.padre.editNombre || props.padre.editNombre.trim() === '') {
+    emit('notificar', { tipo: 'warning', titulo: 'Nombre Requerido', mensaje: 'El nombre del acudiente es obligatorio.' });
+    return;
+  }
+
   if (props.padre.students) {
     for (const hijo of props.padre.students) {
+      if (!hijo.editNombre || hijo.editNombre.trim() === '') {
+        emit('notificar', { tipo: 'warning', titulo: 'Deportista Inválido', mensaje: 'Todos los deportistas deben tener un nombre.' });
+        return;
+      }
       const sedesSinGrupo = (hijo.editSedeIds || []).filter(sid => !hijo.editNiveles[sid] || hijo.editNiveles[sid] === '');
       if (sedesSinGrupo.length > 0) {
-        emit('notificar', { tipo: 'warning', titulo: 'Grupo Requerido', mensaje: 'Por favor selecciona un grupo para todas las sedes del deportista: ' + (hijo.editNombre || hijo.nombreCompleto) });
+        emit('notificar', { tipo: 'warning', titulo: 'Grupo Requerido', mensaje: 'Por favor selecciona un grupo para todas las sedes del deportista: ' + hijo.editNombre });
         return;
       }
     }
   }
+
   try {
     await axios.put('/api/registro/padre/' + props.padre.id, null, {
       params: { nombreCompleto: props.padre.editNombre, telefono: props.padre.editTelefono, estado: props.padre.editEstado }
@@ -86,13 +144,25 @@ const guardarEdicion = async () => {
         (hijo.editSedeIds || []).forEach(sid => {
           if (hijo.editNiveles[sid]) matriculas.push({ sedeId: sid, nivel: hijo.editNiveles[sid] });
         });
-        return axios.put('/api/registro/deportista/' + hijo.id, {
-          nombreCompleto: hijo.editNombre, edad: hijo.editEdad,
-          fechaNacimiento: hijo.editFechaNacimiento, estado: eh, matriculas: matriculas
-        });
+
+        if (hijo.id) {
+          return axios.put('/api/registro/deportista/' + hijo.id, {
+            nombreCompleto: hijo.editNombre, edad: hijo.editEdad,
+            fechaNacimiento: hijo.editFechaNacimiento, estado: eh, matriculas: matriculas
+          });
+        } else {
+          return axios.post('/api/registro/deportista', {
+            parentId: props.padre.id,
+            nombre: hijo.editNombre,
+            apellido: '',
+            edad: hijo.editEdad,
+            fechaNacimiento: hijo.editFechaNacimiento,
+            matriculas: matriculas
+          });
+        }
       }));
     }
-    emit('notificar', { tipo: 'success', titulo: 'Cambios Guardados', mensaje: 'Se actualizaron los datos del padre y sus deportistas correctamente.' });
+    emit('notificar', { tipo: 'success', titulo: 'Cambios Guardados', mensaje: 'Se actualizaron los datos del acudiente y sus deportistas correctamente.' });
     emit('cancelar');
     emit('recargar');
   } catch (error) {
@@ -130,4 +200,3 @@ const eliminarPadre = async () => {
   }
 };
 </script>
-

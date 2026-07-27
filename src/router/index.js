@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { isAuthenticated, isAdmin, isSuperAdmin, clearSession } from '@/utils/auth'
 import HomeView from '@/views/HomeView.vue'
 import ClientesView from '../views/ClientesView.vue'
 import RegistroView from '../views/RegistroView.vue'
@@ -34,7 +35,7 @@ const routes = [
     path: '/caja',
     name: 'caja',
     component: CajaView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/historial-asistencias',
@@ -52,13 +53,32 @@ const routes = [
     path: '/gestion-sedes',
     name: 'gestion-sedes',
     component: () => import('../views/GestionSedesView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/gestion-empleados',
     name: 'gestion-empleados',
     component: () => import('../views/GestionEmpleadosView.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/superadmin',
+    name: 'superadmin',
+    component: () => import('../views/SuperAdminView.vue'),
+    meta: { requiresAuth: true, requiresSuperAdmin: true }
+  },
+  {
+    path: '/ajustes-cobros',
+    name: 'ajustes-cobros',
+    component: () => import('../views/AjustesCobrosView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    redirect: () => {
+      return isAuthenticated() ? { name: 'home' } : { name: 'login' };
+    }
   }
 ]
 
@@ -67,23 +87,36 @@ const router = createRouter({
   routes
 })
 
-// --- Guard de navegación: proteger rutas ---
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('authToken');
+// --- Guard de navegación: proteger rutas (Sintaxis moderna Vue Router 4) ---
+router.beforeEach((to) => {
+  const autenticado = isAuthenticated();
+  const esAdminUser = isAdmin();
 
-  // Rutas públicas (login y portal de padres)
+  // 1. Rutas públicas (login y portal de padres)
   if (to.meta.public) {
-    return next();
+    if (autenticado && to.name === 'login') {
+      return { name: 'home' };
+    }
+    return true;
   }
 
-  // Rutas protegidas: redirigir a login si no hay token
-  if (!token) {
-    // Limpiar cualquier residuo de sesión anterior
-    localStorage.clear();
-    return next({ name: 'login' });
+  // 2. Rutas protegidas: redirigir inmediatamente a login si no hay token válido
+  if (!autenticado) {
+    clearSession();
+    return { name: 'login' };
   }
 
-  next();
+  // 3. Rutas exclusivas de ADMIN (caja, sedes, empleados, ajustes cobros)
+  if (to.meta.requiresAdmin && !esAdminUser) {
+    return { name: 'home' };
+  }
+
+  // 4. Rutas exclusivas de SUPERADMIN
+  if (to.meta.requiresSuperAdmin && !isSuperAdmin()) {
+    return { name: 'home' };
+  }
+
+  return true;
 });
 
 export default router

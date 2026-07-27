@@ -30,6 +30,8 @@ if (import.meta.env.PROD && import.meta.env.VITE_API_URL) {
   axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 }
 
+import { clearSession } from '@/utils/auth';
+
 // --- Interceptor de PETICIONES: inyectar token JWT ---
 axios.interceptors.request.use(
   config => {
@@ -50,10 +52,9 @@ axios.interceptors.response.use(
       const status = error.response.status;
 
       if (status === 401) {
-        // 401 = No autenticado o token inválido/expirado — limpiar sesión y redirigir a login
-        localStorage.clear();
-        alert('⚠️ Tu sesión ha expirado. Redirigiendo al inicio de sesión...');
-        router.push('/login');
+        // 401 = No autenticado o token inválido/expirado — purgar sesión y redirigir inmediatamente
+        console.warn('⚠️ Petición 401 recibida: purgando sesión y redirigiendo a login...');
+        clearSession();
         return Promise.reject(error);
       }
 

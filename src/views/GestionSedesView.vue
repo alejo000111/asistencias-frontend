@@ -75,7 +75,7 @@
                 />
                 <button
                   type="button"
-                  class="btn btn-outline-danger btn-sm"
+                  class="btn btn-danger text-white btn-sm shadow-sm"
                   @click="formSedeEdicion.grupos.splice(idx, 1)"
                   title="Eliminar grupo"
                 >🗑️</button>
@@ -129,7 +129,7 @@
                 <td class="text-muted">{{ sede.id }}</td>
                 <td class="fw-bold">{{ sede.nombre }}</td>
                 <td>
-                  <span v-if="sede.activa === false" class="badge bg-secondary fs-6 px-3 py-2">📦 ARCHIVADA</span>
+                  <span v-if="sede.activa === false" class="badge bg-secondary fs-6 px-3 py-2">⛔ Inactiva</span>
                   <span v-else class="badge bg-success fs-6 px-3 py-2">✅ Activa</span>
                 </td>
                 <td>
@@ -144,21 +144,36 @@
                   </span>
                 </td>
                 <td class="text-center">
-                  <template v-if="sede.activa !== false">
-                    <div class="d-flex gap-2 justify-content-center">
-                      <AppButton
-                        variant="outline"
-                        size="md"
-                        @click="editar(sede)"
-                      >✏️</AppButton>
-                      <AppButton
-                        variant="danger"
-                        size="md"
-                        @click="eliminar(sede)"
-                      >🗑️</AppButton>
-                    </div>
-                  </template>
-                  <span v-else class="text-muted small fst-italic">Archivada</span>
+                  <div class="d-flex gap-2 justify-content-center">
+                    <button
+                      class="btn btn-warning text-dark btn-sm fw-bold shadow-sm d-flex align-items-center gap-1 px-3"
+                      @click="editar(sede)"
+                      title="Editar Sede"
+                    >
+                      <span style="font-size: 0.9rem;">✏️</span>
+                      <span>Editar</span>
+                    </button>
+                    
+                    <button
+                      v-if="sede.activa !== false"
+                      class="btn btn-danger text-white btn-sm fw-bold shadow-sm d-flex align-items-center gap-1 px-3"
+                      @click="desactivar(sede)"
+                      title="Desactivar Sede"
+                    >
+                      <span style="font-size: 0.9rem;">✕</span>
+                      <span>Desactivar</span>
+                    </button>
+
+                    <button
+                      v-else
+                      class="btn btn-danger text-white btn-sm fw-bold shadow-sm d-flex align-items-center gap-1 px-3"
+                      @click="eliminarDefinitivamente(sede)"
+                      title="Eliminar Sede Permanentemente"
+                    >
+                      <span style="font-size: 0.9rem;">🗑️</span>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
                 </td>
               </tr>
 
@@ -238,7 +253,7 @@
                             />
                             <button
                               type="button"
-                              class="btn btn-outline-danger btn-sm"
+                              class="btn btn-danger text-white btn-sm shadow-sm"
                               @click="formSedeEdicion.grupos.splice(idx, 1)"
                               title="Eliminar grupo"
                             >🗑️</button>
@@ -438,7 +453,7 @@ const guardar = async () => {
     sedeIdEnEdicion.value = null;
     formSedeEdicion.value = null;
     limpiarErrores();
-    cargarSedes();
+    cargarSedes(true);
   } catch (e) {
     alert('Error al guardar la sede. Revisa los datos o la consola.');
     console.error('Error al guardar sede:', e);
@@ -455,20 +470,31 @@ const cancelar = () => {
 };
 
 // ================================================================
-//  ELIMINAR (soft-delete: archiva la sede)
+//  DESACTIVAR (soft-delete: desactiva la sede)
 // ================================================================
-const eliminar = async (sede) => {
-  if (!confirm(`¿Archivar la sede "${sede.nombre}"? Los estudiantes asociados serán desmatriculados.`)) return;
+const desactivar = async (sede) => {
+  if (!confirm(`¿Desactivar la sede "${sede.nombre}"? Los estudiantes asociados serán desmatriculados.`)) return;
   try {
     await axios.delete(`/api/sedes/${sede.id}`);
-    cargarSedes();
+    cargarSedes(true);
   } catch (e) {
-    alert('Error al eliminar la sede');
+    alert('Error al desactivar la sede');
     console.error(e);
   }
 };
 
-onMounted(() => cargarSedes());
+const eliminarDefinitivamente = async (sede) => {
+  if (!confirm(`⚠️ ¿Estás seguro de ELIMINAR PERMANENTEMENTE la sede "${sede.nombre}"? Esta acción eliminará la sede de la base de datos de forma irreversible.`)) return;
+  try {
+    await axios.delete(`/api/sedes/${sede.id}`);
+    cargarSedes(true);
+  } catch (e) {
+    alert('Error al eliminar permanentemente la sede');
+    console.error(e);
+  }
+};
+
+onMounted(() => cargarSedes(true));
 </script>
 
 <style scoped>

@@ -2,8 +2,8 @@
   <div>
     <h3 class="mb-4 mt-0">📋 Registrar Asistencia</h3>
 
-    <!-- Bloqueo por sede inactiva -->
-    <div v-if="sedesCargadas && sedesActivas.length === 0" class="card shadow-sm border-warning mb-4">
+    <!-- Bloqueo por sede inactiva (cuando existen sedes y todas están inactivas) -->
+    <div v-if="sedesCargadas && sedesDisponibles.length > 0 && sedesActivas.length === 0" class="card shadow-sm border-warning mb-4">
       <div class="card-body text-center py-5">
         <div class="display-1 mb-4">🚫</div>
         <h4 class="text-warning fw-bold mb-3">Sede Deshabilitada</h4>
@@ -50,9 +50,9 @@
         <!-- Indicador de carga para EMPLEADO (el watch dispara la petición) -->
         <div v-if="cargandoEstudiantes" class="text-center py-3">
           <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando estudiantes...</span>
+            <span class="visually-hidden">Cargando deportistas...</span>
           </div>
-          <p class="text-muted small mt-1">Cargando estudiantes...</p>
+          <p class="text-muted small mt-1">Cargando deportistas...</p>
         </div>
 
         <div v-if="tipoClase === 'GRUPAL' && sedeSeleccionada" class="text-center mb-4">
@@ -81,7 +81,7 @@
             <thead class="table-light border-bottom">
               <tr>
                 <th class="text-center" style="width: 10%;">Presente</th>
-                <th>Estudiante</th>
+                <th>Deportista</th>
                 <th style="width: 150px;">Precio Especial ($)</th>
               </tr>
             </thead>
@@ -97,14 +97,14 @@
               </tr>
               <tr v-if="estudiantesFiltrados.length === 0">
                 <td colspan="3" class="text-center text-muted py-5">
-                  No hay estudiantes registrados en este nivel.
+                  No hay deportistas registrados en este nivel.
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Vista mobile: cards de estudiantes -->
+        <!-- Vista mobile: cards de deportistas -->
         <div class="d-md-none mt-3">
           <div v-for="estudiante in estudiantesFiltrados" :key="estudiante.id"
                class="home-estudiante-card"
@@ -125,7 +125,7 @@
             </div>
           </div>
           <div v-if="estudiantesFiltrados.length === 0" class="text-center text-muted py-5">
-            No hay estudiantes registrados en este nivel.
+            No hay deportistas registrados en este nivel.
           </div>
         </div>
 
@@ -149,7 +149,7 @@
         <span style="font-size: 1.5rem;">✅</span>
         <div>
           <strong class="d-block">{{ resultadoRegistro.exitosos.length }} asistencias registradas con éxito.</strong>
-          <small class="text-success-emphasis">Todos los estudiantes fueron registrados correctamente.</small>
+          <small class="text-success-emphasis">Todos los deportistas fueron registrados correctamente.</small>
         </div>
       </div>
 

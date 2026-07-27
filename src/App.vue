@@ -36,6 +36,13 @@
           <RouterLink v-if="esAdmin" class="navbar-premium__link" to="/gestion-empleados" @click="menuAbierto = false">
             👤 Empleados
           </RouterLink>
+          <RouterLink v-if="esAdmin" class="navbar-premium__link" to="/ajustes-cobros" @click="menuAbierto = false">
+            💰 Cobros
+          </RouterLink>
+          <!-- SuperAdmin exclusivo -->
+          <RouterLink v-if="esSuperAdmin" class="navbar-premium__link navbar-premium__link--superadmin" to="/superadmin" @click="menuAbierto = false">
+            ⚡ SuperAdmin
+          </RouterLink>
           <!-- Botón Salir para móviles -->
           <button class="navbar-premium__link navbar-premium__logout-mobile border-0 bg-transparent text-start w-100 d-md-none" @click="cerrarSesionAndCloseMenu" style="cursor: pointer;">
             🚪 Salir
@@ -96,49 +103,101 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
+
+import { isAuthenticated, isAdmin as checkAdmin, isSuperAdmin as checkSuperAdmin, getAuthUsername, clearSession } from '@/utils/auth';
 
 const route = useRoute();
 const router = useRouter();
 
 const menuAbierto = ref(false);
 
-// Estado reactivo sincronizado con localStorage
+// Estado reactivo sincronizado con el módulo auth
 const esPortal = ref(false);
 const autenticado = ref(false);
 const esAdmin = ref(false);
+const esSuperAdmin = ref(false);
 const nombreUsuario = ref('');
 
 import { useSedes } from '@/utils/useSedes';
-const { sedes: sedesDisponibles, sedesCargadas, sedesBloqueadasForEmp, cargarSedes } = useSedes();
+const { sedes: sedesDisponibles, sedesCargadas, sedesBloqueadas, cargarSedes } = useSedes();
 
 // Sedes bloqueadas: solo para EMPLEADO; ADMIN siempre pasa
-const sedesBloqueadasForEmpForEmp = computed(() => {
+const sedesBloqueadasForEmp = computed(() => {
   if (esAdmin.value) return false;
   if (!autenticado.value) return false;
-  return sedesBloqueadasForEmp.value;
+  return sedesBloqueadas.value;
 });
 
-function comprobarAdmin(rol) {
-  return rol === 'ADMIN' || rol === 'ROLE_ADMIN';
+function cerrarSesion() {
+  menuAbierto.value = false;
+  autenticado.value = false;
+  esAdmin.value = false;
+  nombreUsuario.value = '';
+  clearSession();
+}
+
+function cerrarSesionAndCloseMenu() {
+  menuAbierto.value = false;
+  cerrarSesion();
 }
 
 function sincronizarSesion() {
-  esPortal.value = route.path.startsWith('/portal');
-  autenticado.value = !!localStorage.getItem('authToken');
-  esAdmin.value = comprobarAdmin(localStorage.getItem('authRole'));
-  nombreUsuario.value = localStorage.getItem('authUsername') || '';
+  const path = route.path || '';
+  const tokenValido = isAuthenticated();
+  esPortal.value = path.startsWith('/portal');
+  autenticado.value = tokenValido;
+  esAdmin.value = checkAdmin();
+  esSuperAdmin.value = checkSuperAdmin();
+  nombreUsuario.value = getAuthUsername();
+
+  // Redirección inmediata al login si NO hay sesión válida y no es ruta pública/login
+  if (!esPortal.value && route.name !== 'login' && !tokenValido) {
+    cerrarSesion();
+  }
 }
 
 watch(() => route.path, sincronizarSesion, { immediate: true });
+
+// ============================================================
+// ⏱️ AUTO LOGOUT POR INACTIVIDAD (10 minutos = 600,000 ms)
+// ============================================================
+const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
+let inactivityTimer = null;
+
+function resetInactivityTimer() {
+  if (!autenticado.value || esPortal.value) {
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    return;
+  }
+
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+
+  inactivityTimer = setTimeout(() => {
+    if (autenticado.value && !esPortal.value) {
+      alert("⚠️ Tu sesión se ha cerrado automáticamente por 10 minutos de inactividad. Por favor inicia sesión nuevamente.");
+      cerrarSesion();
+    }
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+function handleUserActivity() {
+  resetInactivityTimer();
+}
 
 watch(autenticado, (val) => {
   if (val && !esAdmin.value) {
     cargarSedes();
   } else if (esAdmin.value) {
     sedesCargadas.value = true;
+  }
+
+  if (val) {
+    resetInactivityTimer();
+  } else {
+    if (inactivityTimer) clearTimeout(inactivityTimer);
   }
 }, { immediate: true });
 
@@ -169,20 +228,24 @@ onMounted(() => {
   } else {
     applyTheme('light');
   }
+  window.addEventListener('storage', sincronizarSesion);
+
+  // Escuchar actividad del usuario para reiniciar temporizador de inactividad
+  const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+  activityEvents.forEach(evt => {
+    window.addEventListener(evt, handleUserActivity, { passive: true });
+  });
+
+  resetInactivityTimer();
 });
 
-const cerrarSesionAndCloseMenu = () => {
-  menuAbierto.value = false;
-  cerrarSesion();
-};
-
-const cerrarSesion = () => {
-  localStorage.clear();
-  autenticado.value = false;
-  esAdmin.value = false;
-  nombreUsuario.value = '';
-  router.push('/login');
-};
+onUnmounted(() => {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  const activityEvents = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+  activityEvents.forEach(evt => {
+    window.removeEventListener(evt, handleUserActivity);
+  });
+});
 </script>
 
 <style>
@@ -462,5 +525,25 @@ const cerrarSesion = () => {
   .app-main {
     padding: var(--space-4) 0;
   }
+}
+
+/* ============================================================
+   ⚡ SUPERADMIN — Enlace especial en navbar
+   ============================================================ */
+.navbar-premium__link--superadmin {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.15), rgba(251, 146, 60, 0.10)) !important;
+  border: 1px solid rgba(250, 204, 21, 0.3) !important;
+  color: #fbbf24 !important;
+  border-radius: var(--radius-md);
+  font-weight: 600 !important;
+  letter-spacing: 0.01em;
+  transition: all var(--transition-normal);
+}
+
+.navbar-premium__link--superadmin:hover {
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.25), rgba(251, 146, 60, 0.18)) !important;
+  border-color: rgba(250, 204, 21, 0.6) !important;
+  color: #fde68a !important;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
 }
 </style>

@@ -78,7 +78,10 @@ const listaDeudas = ref([]);
 
 const formatearMatriculas = (matriculas) => {
   if (!matriculas || matriculas.length === 0) return '';
-  return matriculas.map(m => (m.sede?.nombre || '?') + ' (' + m.nivel + ')').join(' | ');
+  return matriculas
+    .filter(m => m.sede && m.sede.activa !== false)
+    .map(m => (m.sede?.nombre || '?') + ' (' + m.nivel + ')')
+    .join(' | ');
 };
 
 const mostrarDeudas = computed(() => props.activeDeudasId === props.padre.id);
@@ -131,7 +134,23 @@ const activarModoEdicion = () => {
       const mats = hijo.matriculas || [];
       hijo.editSedeIds = mats.map(m => m.sede?.id).filter(id => id != null);
       hijo.editNiveles = {};
-      mats.forEach(m => { if (m.sede?.id) hijo.editNiveles[m.sede.id] = m.nivel; });
+      mats.forEach(m => {
+        if (m.sede?.id) {
+          let valorNivel = m.nivel;
+          const targetSede = sedes.value.find(s => s.id === m.sede.id);
+          if (targetSede && targetSede.grupos) {
+            const normNivel = (m.nivel || '').replace(/[\uD83C-\uDBFF\uDC00-\uDFFF\u2600-\u26FF\u2700-\u27BF]/g, '').trim().toLowerCase();
+            const matchG = targetSede.grupos.find(g => {
+              const normG = (g.nombre || '').replace(/[\uD83C-\uDBFF\uDC00-\uDFFF\u2600-\u26FF\u2700-\u27BF]/g, '').trim().toLowerCase();
+              return normG === normNivel || (m.nivel && g.nombre && m.nivel.includes(g.nombre));
+            });
+            if (matchG) {
+              valorNivel = (matchG.emoji ? matchG.emoji + ' ' : '') + matchG.nombre;
+            }
+          }
+          hijo.editNiveles[m.sede.id] = valorNivel;
+        }
+      });
     });
   }
   emit('toggleCardForm', { clientId: props.padre.id, formType: 'edit' });
