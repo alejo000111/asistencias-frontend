@@ -412,6 +412,7 @@ watch([sedeSeleccionada, nivelClase, tipoClase], async ([sedeId, nivel, tipo]) =
   } catch (error) {
     console.error('Error cargando estudiantes:', error);
     students.value = [];
+    alert('⚠️ No se pudo cargar la lista de deportistas. Intenta de nuevo.');
   } finally {
     cargandoEstudiantes.value = false;
   }
