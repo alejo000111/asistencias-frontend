@@ -427,9 +427,13 @@
                 @input="config.montoMatricula = parseCurrencyInput($event.target.value)"
                 type="text"
                 class="cobros-input"
-                placeholder="$ 120.000"
+                placeholder="Ej: 120000"
               />
             </div>
+          </div>
+
+          <div v-if="!config.montoMatricula || config.montoMatricula <= 0" class="small text-danger fw-semibold mt-1">
+            ⚠️ Sin un monto mayor a $0, la matrícula está activada pero no le va a cobrar nada a nadie.
           </div>
 
           <!-- SI ES OBLIGATORIA: SELECTOR DE FECHA DE VIGENCIA -->
@@ -485,9 +489,13 @@
                 @input="config.montoSeguro = parseCurrencyInput($event.target.value)"
                 type="text"
                 class="cobros-input"
-                placeholder="$ 50.000"
+                placeholder="Ej: 50000"
               />
             </div>
+          </div>
+
+          <div v-if="!config.montoSeguro || config.montoSeguro <= 0" class="small text-danger fw-semibold mt-1">
+            ⚠️ Sin un monto mayor a $0, el seguro está activado pero no le va a cobrar nada a nadie. Escribe el monto y haz clic en "Guardar Todo" abajo.
           </div>
 
           <!-- SI ES OBLIGATORIO: SELECTOR DE FECHA DE VIGENCIA -->

@@ -25,7 +25,12 @@
     </div>
 
     <div class="cortesia-form__deportistas">
-      <label class="cortesia-form__label d-block mb-1">Deportista(s) *</label>
+      <label class="cortesia-form__label d-block mb-1">
+        Deportista(s) *
+        <span class="cortesia-form__nivel-heredado">
+          — Nivel/Grupo: {{ nivelActual ? nivelActual : 'Sin nivel específico' }}
+        </span>
+      </label>
       <div v-for="(d, di) in local.deportistas" :key="di" class="cortesia-form__deportista-row">
         <input
           v-model="d.nombreDeportista"
@@ -33,12 +38,6 @@
           class="form-control"
           placeholder="Ej: Juan Pérez"
         />
-        <select v-model="d.nivel" class="form-select" :disabled="gruposDisponibles.length === 0">
-          <option value="">Sin nivel específico</option>
-          <option v-for="g in gruposDisponibles" :key="g.nombre" :value="g.nombre">
-            {{ g.emoji ? g.emoji + ' ' : '' }}{{ g.nombre }}
-          </option>
-        </select>
         <button v-if="local.deportistas.length > 1" type="button" class="cortesia-form__btn-quitar-fila" @click="quitarDeportista(di)" title="Quitar este deportista">✖</button>
       </div>
       <button type="button" class="btn btn-sm btn-outline-secondary mt-2" @click="agregarDeportista">
@@ -62,7 +61,9 @@ const props = defineProps({
     type: Object,
     required: true
   },
-  gruposDisponibles: { type: Array, default: () => [] },
+  // Nivel/grupo de la clase que se está registrando ahora mismo — la cortesía SIEMPRE lo
+  // hereda (no se puede anotar con el nivel de otro grupo distinto al que se está llenando).
+  nivelActual: { type: String, default: '' },
   idx: { type: [Number, String], default: 0 },
   showRemove: { type: Boolean, default: false },
 });
@@ -75,7 +76,7 @@ const local = computed({
 });
 
 const agregarDeportista = () => {
-  local.value.deportistas.push({ nombreDeportista: '', nivel: local.value.deportistas[0]?.nivel || '' });
+  local.value.deportistas.push({ nombreDeportista: '' });
 };
 
 const quitarDeportista = (idx) => {
@@ -119,9 +120,14 @@ const quitarDeportista = (idx) => {
   padding-top: var(--space-3, 12px);
 }
 
+.cortesia-form__nivel-heredado {
+  font-weight: 500;
+  color: var(--text-secondary, #6b7280);
+}
+
 .cortesia-form__deportista-row {
   display: grid;
-  grid-template-columns: 1.4fr 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;

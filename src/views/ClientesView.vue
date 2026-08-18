@@ -123,6 +123,8 @@
           :padre="padre"
           :sedes="sedes"
           :esquema-cobro="esquemaCobro"
+          :matricula-opcional="matriculaOpcional"
+          :seguro-opcional="seguroOpcional"
           :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
           :activeDeudasId="currentDeudasClientId"
           @recargar="cargarPadres"
@@ -428,13 +430,22 @@ const cargarPadres = async () => {
 
 
 const esquemaCobro = ref('MENSUALIDAD');
+// Un concepto (matrícula/seguro) solo se muestra como badge en la tarjeta cuando el club lo cobra
+// pero NO es obligatorio — si es obligatorio aplica a todos y no aporta información marcarlo.
+const matriculaOpcional = ref(false);
+const seguroOpcional = ref(false);
 
 const cargarConfigCobro = async () => {
   try {
     const res = await axios.get('/api/config/cobro');
-    esquemaCobro.value = res.data?.esquemaCobro || 'MENSUALIDAD';
+    const config = res.data || {};
+    esquemaCobro.value = config.esquemaCobro || 'MENSUALIDAD';
+    matriculaOpcional.value = !!config.cobraMatricula && !config.matriculaObligatoria;
+    seguroOpcional.value = !!config.cobraSeguro && !config.seguroObligatorio;
   } catch (e) {
     esquemaCobro.value = 'MENSUALIDAD';
+    matriculaOpcional.value = false;
+    seguroOpcional.value = false;
   }
 };
 

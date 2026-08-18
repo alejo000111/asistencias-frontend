@@ -62,9 +62,43 @@
       </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-3 mb-3">
+    <div class="d-flex flex-wrap gap-3 mb-3 align-items-center">
       <div class="badge bg-light text-dark border px-3 py-2 fs-6">Clases: <strong>{{ clases.length }}</strong></div>
       <div class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 fs-6">Por pagar: <strong>{{ formatCOP(totalPendiente) }}</strong></div>
+      <button
+        v-if="seleccionadas.size > 0"
+        type="button"
+        class="btn btn-success btn-sm fw-semibold ms-auto"
+        @click="abrirPanelPago(clasesSeleccionadasPendientes)"
+      >
+        💰 Marcar {{ seleccionadas.size }} seleccionada{{ seleccionadas.size === 1 ? '' : 's' }} como pagada{{ seleccionadas.size === 1 ? '' : 's' }}
+      </button>
+    </div>
+
+    <!-- Panel para registrar fecha y medio de pago, tanto para una sola clase como para varias seleccionadas -->
+    <div v-if="panelPago" class="card shadow-sm mb-3 border-success">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Registrar pago de {{ panelPago.clases.length }} clase{{ panelPago.clases.length === 1 ? '' : 's' }}</h6>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Fecha de pago</label>
+            <input type="date" v-model="panelPago.fecha" class="form-control" />
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Medio de pago</label>
+            <select v-model="panelPago.metodo" class="form-select">
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="TRANSFERENCIA">Transferencia</option>
+            </select>
+          </div>
+          <div class="col-md-4 d-flex gap-2">
+            <button type="button" class="btn btn-success fw-semibold flex-grow-1" :disabled="registrandoPago" @click="confirmarPago">
+              {{ registrandoPago ? '⏳ Guardando...' : '✅ Confirmar Pago' }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary" @click="panelPago = null">Cancelar</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="card shadow-sm">
@@ -72,6 +106,9 @@
         <table class="table table-hover mb-0 align-middle">
           <thead class="table-light">
             <tr>
+              <th style="width: 2.5rem;">
+                <input type="checkbox" class="form-check-input" :checked="todasSeleccionadas" @change="alternarSeleccionarTodas" title="Seleccionar todas las pendientes" />
+              </th>
               <th>Fecha</th>
               <th>Entrenador</th>
               <th>Sede</th>
@@ -79,10 +116,21 @@
               <th v-if="mostrarColumnaTipo">Tipo</th>
               <th class="text-end">Valor</th>
               <th class="text-center">Estado</th>
+              <th>Fecha de pago</th>
+              <th>Medio de pago</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="clase in clases" :key="clase.attendanceIds.join('-')">
+              <td>
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  :checked="seleccionadas.has(clase.attendanceIds.join('-'))"
+                  :disabled="clase.pagadoNomina"
+                  @change="alternarSeleccion(clase)"
+                />
+              </td>
               <td>{{ formatFecha(clase.fecha) }}</td>
               <td class="fw-bold">{{ clase.nombreEmpleado }}</td>
               <td>{{ clase.sedeNombre || '—' }}</td>
@@ -91,21 +139,31 @@
               <td class="text-end">{{ formatCOP(clase.tarifa) }}</td>
               <td class="text-center">
                 <button
+                  v-if="clase.pagadoNomina"
                   type="button"
-                  class="btn btn-sm fw-semibold"
-                  :class="clase.pagadoNomina ? 'btn-success' : 'btn-outline-warning'"
+                  class="btn btn-sm fw-semibold btn-success"
                   :disabled="actualizandoClaseKey === clase.attendanceIds.join('-')"
-                  @click="marcarClase(clase, !clase.pagadoNomina)"
+                  @click="marcarClase(clase, false)"
                 >
-                  {{ clase.pagadoNomina ? '✅ Pagada' : '⏳ Pendiente' }}
+                  ✅ Pagada
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="btn btn-sm fw-semibold btn-outline-warning"
+                  @click="abrirPanelPago([clase])"
+                >
+                  ⏳ Pendiente
                 </button>
               </td>
+              <td>{{ clase.pagadoNomina ? formatFecha(clase.fechaPago) : '—' }}</td>
+              <td>{{ clase.pagadoNomina ? formatMedioPago(clase.metodoPago) : '—' }}</td>
             </tr>
             <tr v-if="!cargando && clases.length === 0">
-              <td :colspan="mostrarColumnaTipo ? 7 : 6" class="text-center text-muted py-4">No hay clases registradas por empleados con estos filtros.</td>
+              <td :colspan="mostrarColumnaTipo ? 10 : 9" class="text-center text-muted py-4">No hay clases registradas por empleados con estos filtros.</td>
             </tr>
             <tr v-if="cargando">
-              <td :colspan="mostrarColumnaTipo ? 7 : 6" class="text-center text-muted py-4">
+              <td :colspan="mostrarColumnaTipo ? 10 : 9" class="text-center text-muted py-4">
                 <span class="spinner-border spinner-border-sm me-2"></span>Cargando clases...
               </td>
             </tr>
@@ -126,6 +184,78 @@ const sedes = ref([])
 const cargando = ref(false)
 const exportando = ref(false)
 const actualizandoClaseKey = ref(null)
+
+// Selección múltiple: para marcar como pagadas varias sesiones/clases a la vez (p.ej. varios
+// entrenadores pagados el mismo día con el mismo medio de pago), igual que el checkbox de
+// asistencia por fila en HomeView.
+const seleccionadas = ref(new Set())
+const panelPago = ref(null) // { clases: [ClaseNominaDTO], fecha, metodo }
+const registrandoPago = ref(false)
+
+function claveDe(clase) {
+  return clase.attendanceIds.join('-')
+}
+
+function alternarSeleccion(clase) {
+  const clave = claveDe(clase)
+  const nuevo = new Set(seleccionadas.value)
+  if (nuevo.has(clave)) nuevo.delete(clave)
+  else nuevo.add(clave)
+  seleccionadas.value = nuevo
+}
+
+const clasesPendientes = computed(() => clases.value.filter(c => !c.pagadoNomina))
+const todasSeleccionadas = computed(() =>
+  clasesPendientes.value.length > 0 && clasesPendientes.value.every(c => seleccionadas.value.has(claveDe(c)))
+)
+
+function alternarSeleccionarTodas() {
+  if (todasSeleccionadas.value) {
+    seleccionadas.value = new Set()
+  } else {
+    seleccionadas.value = new Set(clasesPendientes.value.map(claveDe))
+  }
+}
+
+const clasesSeleccionadasPendientes = computed(() =>
+  clasesPendientes.value.filter(c => seleccionadas.value.has(claveDe(c)))
+)
+
+function abrirPanelPago(listaClases) {
+  if (!listaClases.length) return
+  panelPago.value = {
+    clases: listaClases,
+    fecha: toISODate(new Date()),
+    metodo: 'EFECTIVO',
+  }
+}
+
+async function confirmarPago() {
+  if (!panelPago.value) return
+  const attendanceIds = panelPago.value.clases.flatMap(c => c.attendanceIds)
+  registrandoPago.value = true
+  try {
+    await axios.patch('/api/nomina/clases/pago', {
+      attendanceIds,
+      pagado: true,
+      fechaPago: panelPago.value.fecha,
+      metodoPago: panelPago.value.metodo,
+    })
+    seleccionadas.value = new Set()
+    panelPago.value = null
+    await cargarClases()
+  } catch (e) {
+    alert(mensajeError(e, 'registrar el pago'))
+  } finally {
+    registrandoPago.value = false
+  }
+}
+
+function formatMedioPago(metodo) {
+  if (metodo === 'EFECTIVO') return 'Efectivo'
+  if (metodo === 'TRANSFERENCIA') return 'Transferencia'
+  return metodo || '—'
+}
 
 // El "Tipo" (Grupal / Personalizada) solo tiene sentido en el esquema Por Clase (asistencia):
 // en Mensualidad y Paquete todas las clases son grupales, así que la columna sobra.
@@ -235,6 +365,8 @@ function mensajeError(e, accion) {
 
 async function cargarClases() {
   cargando.value = true
+  seleccionadas.value = new Set()
+  panelPago.value = null
   try {
     const res = await axios.get('/api/nomina/clases', { params: filtrosActuales() })
     clases.value = res.data

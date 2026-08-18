@@ -260,7 +260,7 @@
           <CortesiaForm
             v-model="cortesias[idx]"
             :idx="idx"
-            :grupos-disponibles="gruposSedeSeleccionada"
+            :nivel-actual="tipoClase === 'GRUPAL' ? nivelClase : ''"
             :show-remove="cortesias.length > 1"
             @remove="quitarCortesia(idx)"
           />
@@ -276,8 +276,8 @@
     <div v-if="sedeSeleccionada" class="home-footer-actions">
       <div class="home-footer-fecha">
         <label class="home-footer-label">📅 Fecha (Opcional):</label>
-        <input type="date" v-model="fechaAsistencia" class="form-control">
-        <small class="home-footer-hint">Si lo dejas vacío, se usará la fecha de hoy.</small>
+        <input type="date" v-model="fechaAsistencia" :max="hoyISO" class="form-control">
+        <small class="home-footer-hint">Si lo dejas vacío, se usará la fecha de hoy. No se pueden registrar asistencias con fecha futura.</small>
       </div>
       <AppButton variant="success" size="lg" class="home-footer-btn" @click="registrarAsistencias" :disabled="registrando">
         {{ registrando ? '⏳ Registrando...' : '✅ Registrar Asistencias' }}
@@ -307,13 +307,15 @@ const sedeSeleccionada = ref('');
 const tipoClase = ref('GRUPAL');
 const nivelClase = ref('');
 const fechaAsistencia = ref('');
+// No se pueden registrar "asistencias futuras" — solo hoy o antes.
+const hoyISO = new Date().toISOString().slice(0, 10);
 
 // Clases de cortesía a registrar junto con la asistencia regular (misma fecha/sede).
 // Cada bloque = una familia (un acudiente) con uno o más deportistas (hermanos).
 const nuevaCortesia = () => ({
   nombreAcudiente: '',
   telefonoAcudiente: '',
-  deportistas: [{ nombreDeportista: '', nivel: nivelClase.value || '' }]
+  deportistas: [{ nombreDeportista: '' }]
 });
 const cortesias = ref([nuevaCortesia()]);
 const cortesiaExpandida = ref(false);
@@ -458,6 +460,11 @@ const registrarAsistencias = async () => {
     return;
   }
 
+  if (fechaAsistencia.value && fechaAsistencia.value > hoyISO) {
+    alert("⚠️ No se puede registrar una asistencia con fecha futura. Usa la fecha de hoy o una anterior.");
+    return;
+  }
+
   const nivelAEnviar = tipoClase.value === 'GRUPAL' ? nivelClase.value : null;
   registrando.value = true;
   resultadoRegistro.value = null;
@@ -505,7 +512,7 @@ const registrarAsistencias = async () => {
           nombreAcudiente: familia.nombreAcudiente.trim(),
           telefonoAcudiente: familia.telefonoAcudiente.trim(),
           sedeId: sedeSeleccionada.value,
-          nivel: d.nivel || nivelAEnviar || null,
+          nivel: nivelAEnviar || null,
           fecha: fechaAsistencia.value || null
         });
         cortesiaExitosos.push(nombreEtiqueta);

@@ -109,6 +109,10 @@ const fechaHasta = ref('');
 
 const rawAsistencias = ref([]);
 const precios = ref({ grupal: 40000, personalizada: 50000 });
+// "Precio Especial" solo tiene sentido en esquema Por Clase (ahí sí hay un precio base grupal/
+// personalizada con el que comparar) — en Mensualidad y Paquete el precioCobrado de la asistencia
+// no se compara contra esos precios, así que la etiqueta no debe aparecer en esos esquemas.
+const esquemaCobro = ref('MENSUALIDAD');
 const EMOJI_COLOR_MAP = { '🌱': '#059669', '🔥': '#ea580c', '⭐': '#0d6efd', '💪': '#7c3aed', '⚡': '#ca8a04', '🎯': '#dc2626', '🚀': '#0891b2', '💎': '#9333ea', '🌈': '#d946ef', '🦁': '#d97706' };
 
 const { sedes, cargarSedes } = useSedes();
@@ -223,7 +227,7 @@ const asistenciasAgrupadas = computed(() => {
     const pGrupal = Number(precios.value.grupal || 40000);
     const pPersonalizada = Number(precios.value.personalizada || 50000);
     const precio = Number(a.precioCobrado);
-    const esPrecioEspecial = ![pGrupal, pPersonalizada].includes(precio);
+    const esPrecioEspecial = esquemaCobro.value === 'POR_CLASE' && ![pGrupal, pPersonalizada].includes(precio);
 
     grupos[key].estudiantes.push({
       idAsistencia: a.id,
@@ -246,11 +250,7 @@ const asistenciasAgrupadas = computed(() => {
   return Object.values(grupos).map(g => {
     g.pendientesCount = g.estudiantes.filter(e => !e.pagada).length;
     return g;
-  }).sort((a, b) => {
-    if (a.pendientesCount > 0 && b.pendientesCount === 0) return -1;
-    if (a.pendientesCount === 0 && b.pendientesCount > 0) return 1;
-    return b.tiempoMs - a.tiempoMs;
-  });
+  }).sort((a, b) => b.tiempoMs - a.tiempoMs); // más reciente (fecha más alta) primero, sin importar si tiene pendientes de pago
 });
 
 const totalPaginas = computed(() => Math.ceil(asistenciasAgrupadas.value.length / itemsPorPagina));
@@ -274,6 +274,13 @@ const cargarPrecios = async () => {
     const res = await axios.get('/api/public/precios');
     precios.value = res.data;
   } catch (e) { console.error('Error cargando precios:', e); }
+};
+
+const cargarEsquemaCobro = async () => {
+  try {
+    const res = await axios.get('/api/config/cobro');
+    esquemaCobro.value = res.data?.esquemaCobro || 'MENSUALIDAD';
+  } catch (e) { esquemaCobro.value = 'MENSUALIDAD'; }
 };
 
 const eliminarRegistro = async (idAsistencia) => {
@@ -332,5 +339,5 @@ const exportarExcel = async () => {
   }
 };
 
-onMounted(() => { cargarAsistencias(); cargarSedes(); cargarPrecios(); });
+onMounted(() => { cargarAsistencias(); cargarSedes(); cargarPrecios(); cargarEsquemaCobro(); });
 </script>

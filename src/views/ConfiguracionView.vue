@@ -18,7 +18,7 @@
         🔒 Seguridad y Contraseña
       </button>
       <button
-        v-if="!esSuperAdmin"
+        v-if="esAdmin || esSuperAdmin"
         class="config-tab-btn"
         :class="{ 'config-tab-btn--active': activeTab === 'general' }"
         @click="activeTab = 'general'"
@@ -80,8 +80,8 @@
       </div>
     </div>
 
-    <!-- TAB 2: GENERAL -->
-    <div v-if="activeTab === 'general'" class="config-section">
+    <!-- TAB 2: GENERAL (solo ADMIN/SUPERADMIN) -->
+    <div v-if="activeTab === 'general' && (esAdmin || esSuperAdmin)" class="config-section">
       <div v-if="esSuperAdmin" class="config-card">
         <h2 class="config-card__title">⚡ Perfil SuperAdmin Activo</h2>
         <p class="config-card__desc">
@@ -134,9 +134,10 @@
 <script setup>
 import { ref } from 'vue'
 import axios from 'axios'
-import { isSuperAdmin } from '@/utils/auth'
+import { isAdmin, isSuperAdmin } from '@/utils/auth'
 import WompiConfig from '@/components/WompiConfig.vue'
 
+const esAdmin = isAdmin()
 const esSuperAdmin = isSuperAdmin()
 const activeTab = ref('seguridad')
 

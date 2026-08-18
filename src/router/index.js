@@ -89,6 +89,8 @@ const routes = [
     path: '/configuracion',
     name: 'configuracion',
     component: () => import('../views/ConfiguracionView.vue'),
+    // No requiresAdmin: la pestaña "Seguridad y Contraseña" es de cualquier usuario autenticado.
+    // La pestaña "Configuración General" (solo ADMIN/SUPERADMIN) se oculta dentro del propio componente.
     meta: { requiresAuth: true }
   },
   {

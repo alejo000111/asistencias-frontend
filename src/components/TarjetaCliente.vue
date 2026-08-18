@@ -46,6 +46,12 @@
           <span>
             🛼 {{ hijo.nombreCompleto }} <span v-if="hijo.edad != null" class="text-secondary">({{ hijo.edad }} años)</span>
             <span v-if="hijo.estado === 'CORTESIA'" class="badge bg-warning text-dark fw-bold ms-1" style="font-size: 0.7rem;">🎟 Cortesía</span>
+            <span v-if="matriculaOpcional" class="badge fw-bold ms-1" :class="hijo.adquiereMatricula ? 'bg-success text-white' : 'bg-secondary-subtle text-secondary'" style="font-size: 0.7rem;">
+              {{ hijo.adquiereMatricula ? '🎫 Matrícula activa' : '⚠️ Sin matrícula' }}
+            </span>
+            <span v-if="seguroOpcional" class="badge fw-bold ms-1" :class="hijo.adquiereSeguro ? 'bg-success text-white' : 'bg-secondary-subtle text-secondary'" style="font-size: 0.7rem;">
+              {{ hijo.adquiereSeguro ? '🛡️ Seguro activo' : '⚠️ Sin seguro' }}
+            </span>
             <span v-if="obtenerSedesDeHijo(hijo).length" class="tarjeta-cliente__sede-badge" title="Sede(s) del deportista">
               📍 {{ obtenerSedesDeHijo(hijo).join(', ') }}
             </span>
@@ -138,7 +144,7 @@ import CompraPaqueteForm from './CompraPaqueteForm.vue';
 import HistorialForm from './HistorialForm.vue';
 import EditForm from './EditForm.vue';
 
-const props = defineProps(['padre', 'activeFormType', 'activeDeudasId', 'esquemaCobro']);
+const props = defineProps(['padre', 'activeFormType', 'activeDeudasId', 'esquemaCobro', 'matriculaOpcional', 'seguroOpcional']);
 const emit = defineEmits(['toggleCardForm', 'toggleDeudas', 'clienteActualizado', 'recargar', 'notificar']);
 
 // existing code continues below
