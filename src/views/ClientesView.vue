@@ -425,7 +425,14 @@ const cargarPadres = async () => {
         metodoPago: 'TRANSFERENCIA'
       };
     });
-  } catch (error) { console.error(error); }
+  } catch (error) {
+    console.error(error);
+    setNotificacion({
+      tipo: 'danger',
+      titulo: 'Error al cargar clientes',
+      mensaje: 'No se pudo cargar la lista de clientes. Intenta de nuevo.'
+    });
+  }
 };
 
 

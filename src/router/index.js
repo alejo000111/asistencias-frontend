@@ -94,11 +94,13 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    // Ruta desconocida: para un usuario AUTENTICADO se muestra una vista 404 real
+    // (antes rebotaba en silencio a 'home' sin explicación). El guard de abajo ya
+    // redirige a 'login' cuando no hay sesión, sin necesidad de un redirect aquí.
     path: '/:pathMatch(.*)*',
     name: 'not-found',
-    redirect: () => {
-      return isAuthenticated() ? { name: 'home' } : { name: 'login' };
-    }
+    component: () => import('../views/NotFoundView.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 
