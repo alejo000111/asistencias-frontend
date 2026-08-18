@@ -46,6 +46,11 @@ body {
   min-height: 100vh;
 }
 
+/* Card grid alignment helper to prevent stretching cards vertically in adjacent flex columns */
+.row.align-items-start {
+  align-items: flex-start !important;
+}
+
 /* ——— Tipografía base ——— */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;

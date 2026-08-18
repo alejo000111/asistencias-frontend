@@ -31,10 +31,11 @@
             <tbody>
               <tr v-for="log in paginatedHistorial" :key="log.id">
                 <td class="fw-bold text-secondary">{{ formatearFecha(log.fecha) }}</td>
-                <td class="fw-bold">{{ log.nombreCliente || 'Desconocido' }}</td>
+                <td class="fw-bold">{{ log.nombreCliente || log.nombreClienteRespaldo || 'Desconocido' }}</td>
                 
                 <td>
-                  <span class="badge bg-success fs-6">💰 Abono</span>
+                  <span v-if="log.tipoMovimiento === 'PAGO_DIRECTO'" class="badge bg-primary fs-6">📦 {{ log.concepto || 'Pago Directo' }}</span>
+                  <span v-else class="badge bg-success fs-6">💰 Abono</span>
                 </td>
                 
                 <td>
@@ -94,7 +95,7 @@ watch(textoBusqueda, () => {
 
 // --- FILTRO: Solo ingresos reales de dinero (excluye USO_ABONO_CLASE) ---
 const historialIngresos = computed(() => {
-  return historial.value.filter(log => log.tipoMovimiento === 'INGRESO_ABONO');
+  return historial.value.filter(log => log.tipoMovimiento === 'INGRESO_ABONO' || log.tipoMovimiento === 'PAGO_DIRECTO');
 });
 
 // --- FILTRO DE BÚSQUEDA EN VIVO (sobre los ingresos reales) ---
