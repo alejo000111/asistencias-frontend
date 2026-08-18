@@ -53,9 +53,14 @@
           Clientes Inactivos
         </button>
       </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold" :class="{ 'active': pestanaActual === 'CORTESIAS' }" @click="pestanaActual = 'CORTESIAS'">
+          🎟 Cortesías <span v-if="padresCortesias.length" class="badge bg-warning text-dark ms-1">{{ padresCortesias.length }}</span>
+        </button>
+      </li>
     </ul>
 
-    <!-- Barra de búsqueda en vivo + Filtro por sede -->
+    <!-- Barra de búsqueda en vivo + Botón de Filtros -->
     <div class="clientes-filtros">
       <input
         type="text"
@@ -63,10 +68,41 @@
         class="form-control"
         placeholder="🔍 Buscar por acudiente o deportista..."
       />
-      <select v-model="filtroSedeId" class="form-select">
-        <option value="">🏢 Todas las sedes</option>
-        <option v-for="s in sedes" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-      </select>
+      <div class="clientes-filtro-btn-wrap">
+        <button
+          type="button"
+          class="btn btn-outline-secondary fw-bold d-flex align-items-center gap-2"
+          @click="mostrarPanelFiltro = !mostrarPanelFiltro"
+        >
+          🔧 Filtros
+          <span v-if="hayFiltrosActivos" class="badge bg-primary rounded-pill">●</span>
+        </button>
+
+        <div v-if="mostrarPanelFiltro" class="clientes-filtro-panel card shadow-sm">
+          <div class="card-body p-3">
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">🏢 Sede</label>
+              <select v-model="filtroSedeId" class="form-select form-select-sm">
+                <option value="">Todas las sedes</option>
+                <option v-for="s in sedes" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+              </select>
+            </div>
+            <div class="mb-2" v-if="pestanaActual === 'ACTIVOS'">
+              <label class="form-label small fw-semibold">💰 Estado de pago</label>
+              <select v-model="filtroEstadoPago" class="form-select form-select-sm">
+                <option value="TODOS">Todos</option>
+                <option value="DEBE">Deben</option>
+                <option value="AL_DIA">Al día</option>
+              </select>
+            </div>
+            <div class="form-check mb-2">
+              <input type="checkbox" v-model="verTodosSinPaginar" id="ver-todos-check" class="form-check-input" />
+              <label for="ver-todos-check" class="form-check-label small">Ver todos los clientes sin paginación</label>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary w-100" @click="limpiarFiltrosPanel">🔄 Limpiar filtros</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Mensaje cuando la búsqueda no encuentra resultados -->
@@ -74,61 +110,40 @@
       No se encontraron resultados para "<strong>{{ textoBusqueda }}</strong>"
     </div>
 
-    <div v-if="pestanaActual === 'ACTIVOS'">
-      <h5 class="border-bottom pb-2 mt-2" style="color: var(--text-primary);">Tienen saldos pendientes</h5>
-      <div class="row mt-3 align-items-start">
-        <div class="col-md-6 mb-4" v-for="padre in padresActivosConDeuda" :key="padre.id">
-          <TarjetaCliente 
-            :padre="padre" 
-            :sedes="sedes"
-            :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
-            :activeDeudasId="currentDeudasClientId"
-            @recargar="cargarPadres" 
-            @toggleCardForm="onToggleCardForm"
-            @toggleDeudas="onToggleDeudas"
-            @notificar="setNotificacion"
-          />
-        </div>
-        <div v-if="padresActivosConDeuda.length === 0" class="text-muted mb-4">Nadie debe dinero. ¡Excelente!</div>
-      </div>
+    <div v-if="pestanaActual === 'INACTIVOS'" class="alert" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-3);">
+      Aquí aparecen los acudientes marcados como INACTIVOS. Puedes editarlos para reactivarlos.
+    </div>
+    <div v-if="pestanaActual === 'CORTESIAS'" class="alert" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-3);">
+      🎟 Deportistas que tomaron una clase de cortesía y aún no están matriculados. Edítalos para completar su inscripción — no hace falta volver a registrarlos desde cero.
+    </div>
 
-      <h5 class="border-bottom pb-2 mt-4" style="color: var(--text-primary);">Al Día / Saldo a Favor</h5>
-      <div class="row mt-3 align-items-start">
-        <div class="col-md-6 mb-4" v-for="padre in padresActivosAlDia" :key="padre.id">
-          <TarjetaCliente 
-            :padre="padre" 
-            :sedes="sedes"
-            :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
-            :activeDeudasId="currentDeudasClientId"
-            @recargar="cargarPadres" 
-            @toggleCardForm="onToggleCardForm"
-            @toggleDeudas="onToggleDeudas"
-            @notificar="setNotificacion"
-          />
-        </div>
-        <div v-if="padresActivosAlDia.length === 0" class="text-muted">No hay clientes en esta categoría.</div>
+    <div class="row mt-3 align-items-start">
+      <div class="col-md-6 mb-4" v-for="padre in listaPaginada" :key="padre.id">
+        <TarjetaCliente
+          :padre="padre"
+          :sedes="sedes"
+          :esquema-cobro="esquemaCobro"
+          :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
+          :activeDeudasId="currentDeudasClientId"
+          @recargar="cargarPadres"
+          @toggleCardForm="onToggleCardForm"
+          @toggleDeudas="onToggleDeudas"
+          @notificar="setNotificacion"
+        />
+      </div>
+      <div v-if="listaSegunTab.length === 0" class="text-muted mb-4">
+        {{ pestanaActual === 'ACTIVOS' ? 'No hay clientes en esta categoría.' : (pestanaActual === 'INACTIVOS' ? 'No hay clientes inactivos.' : 'No hay cortesías pendientes de matricular.') }}
       </div>
     </div>
 
-    <div v-if="pestanaActual === 'INACTIVOS'">
-      <div class="alert" style="background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--space-3);">
-        Aquí aparecen los acudientes marcados como INACTIVOS. Puedes editarlos para reactivarlos.
-      </div>
-      <div class="row mt-3 align-items-start">
-        <div class="col-md-6 mb-4" v-for="padre in padresInactivos" :key="padre.id">
-          <TarjetaCliente 
-            :padre="padre" 
-            :sedes="sedes"
-            :activeFormType="currentOpenClientId === padre.id ? currentOpenFormType : null"
-            :activeDeudasId="currentDeudasClientId"
-            @recargar="cargarPadres" 
-            @toggleCardForm="onToggleCardForm"
-            @toggleDeudas="onToggleDeudas"
-            @notificar="setNotificacion"
-          />
-        </div>
-        <div v-if="padresInactivos.length === 0" class="text-muted">No hay clientes inactivos.</div>
-      </div>
+    <div v-if="!verTodosSinPaginar && totalPaginas > 1" class="d-flex justify-content-center align-items-center mt-3 mb-2 gap-2">
+      <button @click="paginaActual--" :disabled="paginaActual === 1" class="btn btn-outline-primary btn-sm fw-bold px-3">
+        ⬅ Anterior
+      </button>
+      <span class="fw-bold text-muted small">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+      <button @click="paginaActual++" :disabled="paginaActual === totalPaginas" class="btn btn-outline-primary btn-sm fw-bold px-3">
+        Siguiente ➡
+      </button>
     </div>
 
     <!-- Modal de Importación Excel -->
@@ -143,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 import TarjetaCliente from '../components/TarjetaCliente.vue';
 import ImportarExcelModal from '../components/ImportarExcelModal.vue';
@@ -156,7 +171,26 @@ const esAdmin = computed(() => isAdmin());
 const padres = ref([]);
 const pestanaActual = ref('ACTIVOS');
 const textoBusqueda = ref('');
+
+// Filtros de la pantalla de Clientes: viven únicamente en memoria del componente
+// (no en localStorage/sessionStorage) para que se reinicien solos al recargar la
+// página o al cerrar sesión y volver a entrar (el componente se remonta desde cero).
 const filtroSedeId = ref('');
+const filtroEstadoPago = ref('TODOS'); // 'TODOS' | 'DEBE' | 'AL_DIA'
+const verTodosSinPaginar = ref(false);
+const mostrarPanelFiltro = ref(false);
+const paginaActual = ref(1);
+const itemsPorPagina = 4;
+
+const hayFiltrosActivos = computed(() =>
+  !!filtroSedeId.value || filtroEstadoPago.value !== 'TODOS' || verTodosSinPaginar.value
+);
+
+const limpiarFiltrosPanel = () => {
+  filtroSedeId.value = '';
+  filtroEstadoPago.value = 'TODOS';
+  verTodosSinPaginar.value = false;
+};
 
 const mostrarModalExcel = ref(false);
 const exportando = ref(false);
@@ -224,21 +258,20 @@ const onExcelDeshecho = (res) => {
 };
 
 const deshacerUltimoBatch = async () => {
-  if (!ultimoBatchInfo.value || !ultimoBatchInfo.value.batchId) return;
   if (!confirm('¿Estás seguro de que deseas deshacer la última importación? Se eliminarán los deportistas y acudientes creados en ese archivo.')) return;
 
   deshaciendoBatch.value = true;
   try {
-    const res = await axios.post(`/api/clientes/deshacer-importacion/${ultimoBatchInfo.value.batchId}`);
+    const batchId = ultimoBatchInfo.value?.batchId || 'ultimo';
+    const res = await axios.post(`/api/clientes/deshacer-importacion/${batchId}`);
     onExcelDeshecho(res.data);
   } catch (err) {
     console.error('Error al deshacer importación:', err);
-    sessionStorage.removeItem('ultimoBatchInfo');
-    ultimoBatchInfo.value = null;
+    const errorMsg = err.response?.data?.error || err.response?.data?.mensaje || 'El lote ya fue revertido o no se encuentra en el sistema.';
     setNotificacion({
       tipo: 'danger',
-      titulo: 'Lote no disponible',
-      mensaje: 'El lote ya fue revertido o expiró por reinicio del servidor.'
+      titulo: 'No se pudo deshacer',
+      mensaje: errorMsg
     });
   } finally {
     deshaciendoBatch.value = false;
@@ -298,36 +331,93 @@ const padresFiltrados = computed(() => {
   return filtrados;
 });
 
-// Filtros Computados (ahora sobre la lista filtrada por búsqueda)
-const padresActivos = computed(() => padresFiltrados.value.filter(p => p.estado === 'ACTIVO' || !p.estado));
-const padresInactivos = computed(() => padresFiltrados.value.filter(p => p.estado === 'INACTIVO'));
+// Una familia es "pura cortesía" cuando NINGUNO de sus deportistas ha sido activado
+// todavía (todos siguen en estado CORTESIA) — son prospectos, no clientes reales.
+const esFamiliaCortesia = (padre) => {
+  const hijos = padre.students || [];
+  return hijos.length > 0 && hijos.every(h => h.estado === 'CORTESIA');
+};
 
-const padresActivosConDeuda = computed(() => padresActivos.value.filter(p => p.deudaTotal > 0));
-const padresActivosAlDia = computed(() => padresActivos.value.filter(p => p.deudaTotal === 0));
+// Filtros Computados (ahora sobre la lista filtrada por búsqueda)
+const padresActivos = computed(() => padresFiltrados.value.filter(p => (p.estado === 'ACTIVO' || !p.estado) && !esFamiliaCortesia(p)));
+const padresInactivos = computed(() => padresFiltrados.value.filter(p => p.estado === 'INACTIVO' && !esFamiliaCortesia(p)));
+const padresCortesias = computed(() => padresFiltrados.value.filter(esFamiliaCortesia));
+
+const padresActivosConDeuda = computed(() => padresActivos.value.filter(p => p.deudaTotal - (p.saldoAbono || 0) > 0));
+const padresActivosAlDia = computed(() => padresActivos.value.filter(p => p.deudaTotal - (p.saldoAbono || 0) <= 0));
+
+// Lista combinada según el filtro de "estado de pago" (solo aplica a la pestaña Activos)
+const listaActivosFiltrada = computed(() => {
+  if (filtroEstadoPago.value === 'DEBE') return padresActivosConDeuda.value;
+  if (filtroEstadoPago.value === 'AL_DIA') return padresActivosAlDia.value;
+  return [...padresActivosConDeuda.value, ...padresActivosAlDia.value];
+});
+
+// Lista que corresponde a la pestaña actualmente seleccionada
+const listaSegunTab = computed(() => {
+  if (pestanaActual.value === 'INACTIVOS') return padresInactivos.value;
+  if (pestanaActual.value === 'CORTESIAS') return padresCortesias.value;
+  return listaActivosFiltrada.value;
+});
+
+const totalPaginas = computed(() => Math.max(1, Math.ceil(listaSegunTab.value.length / itemsPorPagina)));
+
+// FASE 4 — Paginación al estilo "Historial de Asistencias": solo se renderizan 4
+// tarjetas de cliente a la vez para reducir la carga de la vista. El checkbox
+// "Ver todos sin paginación" permite al ADMIN traer la lista completa cuando la necesite.
+const listaPaginada = computed(() => {
+  if (verTodosSinPaginar.value) return listaSegunTab.value;
+  const inicio = (paginaActual.value - 1) * itemsPorPagina;
+  return listaSegunTab.value.slice(inicio, inicio + itemsPorPagina);
+});
+
+watch([pestanaActual, filtroSedeId, filtroEstadoPago, textoBusqueda, verTodosSinPaginar], () => {
+  paginaActual.value = 1;
+});
 
 
 
 const cargarPadres = async () => {
   try {
-    // Usamos el endpoint /api/clientes que ya aplica el filtro por sedes
-    // autorizadas para el rol EMPLEADO (ClienteController.listarClientes())
+    await cargarSedes(true);
     const response = await axios.get('/api/clientes');
     
     if (!response?.data) return;
-    padres.value = response.data.map(padre => {
-      let deuda = 0;
+
+    // Cargar todos los cargos extras de manera paralela para mayor performance
+    const padresRaw = response.data;
+    const cargosExtrasPromises = padresRaw.map(p =>
+      axios.get(`/api/finanzas/cargos-extras/${p.id}`)
+        .then(r => ({ parentId: p.id, extras: r.data || [] }))
+        .catch(() => ({ parentId: p.id, extras: [] }))
+    );
+    const cargosExtrasResults = await Promise.all(cargosExtrasPromises);
+    const cargosExtrasMap = {};
+    cargosExtrasResults.forEach(({ parentId, extras }) => {
+      cargosExtrasMap[parentId] = extras;
+    });
+
+    padres.value = padresRaw.map(padre => {
+      // Deuda por clases no pagadas
+      let deudaClases = 0;
       if (padre.students) {
         padre.students.forEach(hijo => {
           if (hijo.attendances) {
             hijo.attendances.forEach(clase => {
-              if (!clase.clasePaga) deuda += clase.precioCobrado;
+              if (!clase.clasePaga) deudaClases += clase.precioCobrado;
             });
           }
         });
       }
+      // Deuda por cargos extras (matrícula, seguro)
+      const extras = cargosExtrasMap[padre.id] || [];
+      const deudaExtras = extras.reduce((sum, e) => sum + (Number(e.monto) || 0), 0);
+
       return {
         ...padre,
-        deudaTotal: deuda,
+        deudaTotal: deudaClases + deudaExtras,
+        deudaClases,
+        cargosExtras: extras,
         estado: padre.estado || 'ACTIVO',
         nuevoAbono: '',
         metodoPago: 'TRANSFERENCIA'
@@ -336,7 +426,19 @@ const cargarPadres = async () => {
   } catch (error) { console.error(error); }
 };
 
-onMounted(() => { cargarPadres(); cargarSedes(); });
+
+const esquemaCobro = ref('MENSUALIDAD');
+
+const cargarConfigCobro = async () => {
+  try {
+    const res = await axios.get('/api/config/cobro');
+    esquemaCobro.value = res.data?.esquemaCobro || 'MENSUALIDAD';
+  } catch (e) {
+    esquemaCobro.value = 'MENSUALIDAD';
+  }
+};
+
+onMounted(() => { cargarPadres(); cargarSedes(); cargarConfigCobro(); });
 </script>
 
 <style scoped>
@@ -360,9 +462,18 @@ onMounted(() => { cargarPadres(); cargarSedes(); });
   flex: 1;
 }
 
-.clientes-filtros .form-select {
-  min-width: 160px;
-  width: auto;
+.clientes-filtro-btn-wrap {
+  position: relative;
+}
+
+.clientes-filtro-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  width: 260px;
+  z-index: 20;
+  border: 1px solid var(--border-primary);
+  background: var(--card-bg, #fff);
 }
 
 @media (max-width: 768px) {
@@ -370,9 +481,10 @@ onMounted(() => { cargarPadres(); cargarSedes(); });
     flex-direction: column;
   }
 
-  .clientes-filtros .form-select {
+  .clientes-filtro-panel {
     width: 100%;
-    min-width: unset;
+    right: auto;
+    left: 0;
   }
 }
 </style>

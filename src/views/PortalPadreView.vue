@@ -17,7 +17,12 @@
       <!-- Encabezado del padre -->
       <div class="card shadow-sm mb-4 border-0 text-white text-center"
            :style="{ background: 'linear-gradient(135deg, #111827, #1f2937)' }">
-        <div class="card-body py-4">
+        <div class="card-body py-4 position-relative">
+          <div class="position-absolute top-0 end-0 mt-3 me-3">
+            <span v-if="esquemaCobro === 'MENSUALIDAD'" class="badge bg-primary px-3 py-2 shadow-sm rounded-pill">📅 Plan Mensualidad</span>
+            <span v-if="esquemaCobro === 'PAQUETE'" class="badge bg-warning text-dark px-3 py-2 shadow-sm rounded-pill">📦 Plan Paquetes</span>
+            <span v-if="esquemaCobro === 'POR_CLASE'" class="badge bg-info text-dark px-3 py-2 shadow-sm rounded-pill">⚡ Pago por Clase</span>
+          </div>
           <h3 class="mb-0 text-white fw-bold" style="font-size: 1.65rem;">{{ padre.nombreCompleto }}</h3>
         </div>
       </div>
@@ -37,10 +42,18 @@
         <div class="col-md-4">
           <div class="card border-0 shadow-sm h-100">
             <div class="card-body text-center p-3">
-              <div class="text-muted mb-1" style="font-size: 0.95rem;">Saldo a Favor (Abono)</div>
-              <div class="fs-3 fw-bold text-success">
-                ${{ formatearDinero(padre.saldoAbono || 0) }}
-              </div>
+              <template v-if="esquemaCobro === 'PAQUETE'">
+                <div class="text-muted mb-1" style="font-size: 0.95rem;">Clases Disponibles</div>
+                <div class="fs-3 fw-bold" :class="totalClasesDisponibles < 0 ? 'text-danger' : 'text-success'">
+                  {{ totalClasesDisponibles }}
+                </div>
+              </template>
+              <template v-else>
+                <div class="text-muted mb-1" style="font-size: 0.95rem;">Saldo a Favor (Abono)</div>
+                <div class="fs-3 fw-bold text-success">
+                  ${{ formatearDinero(padre.saldoAbono || 0) }}
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -81,6 +94,12 @@
                             class="badge rounded-pill px-2 py-1 bg-secondary"
                             style="font-size: 0.80rem;">Sin nivel</span>
                     </div>
+                    <div v-if="(est.matriculas || []).some(m => m.plan)" class="text-muted" style="font-size: 12px;">
+                      📋 Plan: {{ (est.matriculas || []).filter(m => m.plan).map(m => m.plan).join(', ') }}
+                    </div>
+                    <div v-if="(est.complementos || []).length > 0" class="text-muted" style="font-size: 12px;">
+                      🧩 {{ est.complementos.map(c => c.nombre).join(', ') }}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -105,18 +124,29 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="deuda in deudas" :key="deuda.id">
+                <tr v-for="deuda in deudas" :key="String(deuda.id) + '-' + (deuda.tipo || 'clase')">
+                  <!-- Deportista -->
                   <td class="fw-semibold text-dark py-2" style="font-size: 0.95rem;">
-                    {{ deuda.student?.nombreCompleto || deuda.nombreEstudianteHistorico || 'Deportista' }}
+                    <span v-if="deuda.tipo === 'CARGO_EXTRA'">
+                      {{ obtenerNombreDesdeConcepto(deuda.concepto) }}
+                    </span>
+                    <span v-else>{{ deuda.student?.nombreCompleto || deuda.nombreEstudianteHistorico || 'Deportista' }}</span>
                   </td>
+                  <!-- Fecha -->
                   <td class="text-secondary py-2" style="font-size: 0.95rem;">
                     {{ formatearFecha(deuda.fecha) }}
                   </td>
-                  <td class="text-secondary py-2" style="font-size: 0.95rem;">
-                    {{ descripcionNivel(deuda.nivel) }}
+                  <!-- Concepto -->
+                  <td class="py-2" style="font-size: 0.95rem;">
+                    <span v-if="deuda.tipo === 'CARGO_EXTRA'" class="text-secondary">
+                      {{ obtenerSoloConcepto(deuda.concepto) }}
+                    </span>
+                    <span v-else-if="esquemaCobro === 'MENSUALIDAD'" class="text-secondary">{{ deuda.concepto || descripcionNivel(deuda.nivel) }}</span>
+                    <span v-else class="text-secondary">{{ descripcionNivel(deuda.nivel) }}</span>
                   </td>
+                  <!-- Monto -->
                   <td class="fw-bold text-dark py-2 text-end" style="font-size: 0.95rem;">
-                    ${{ formatearDinero(deuda.precioCobrado) }}
+                    ${{ formatearDinero(deuda.precioCobrado || deuda.monto) }}
                   </td>
                 </tr>
               </tbody>
@@ -125,7 +155,7 @@
           <!-- Totales / Desglose -->
           <div class="bg-light p-3 border-top mt-3 rounded-2" style="font-size: 0.95rem;">
             <div class="d-flex justify-content-between text-muted mb-2">
-              <span>Subtotal de clases:</span>
+              <span>Subtotal de deudas:</span>
               <span class="fw-semibold text-dark">${{ formatearDinero(subtotalDeudas) }}</span>
             </div>
             <div v-if="Number(padre.saldoAbono || 0) > 0" class="d-flex justify-content-between text-muted mb-2">
@@ -137,6 +167,14 @@
               <span class="fs-5 fw-bold text-dark" style="font-size: 1.25rem;">Total a pagar:</span>
               <span class="fs-3 fw-bold text-dark" style="font-size: 1.5rem;">${{ formatearDinero(totalAPagar) }}</span>
             </div>
+          </div>
+          <div class="mt-4" v-if="totalAPagar > 0">
+            <!-- Asumiendo que el backend envía la publicKey o sabemos que el club está configurado -->
+            <WompiPaymentWidget 
+              :monto="totalAPagar" 
+              :clubId="padre.clubId" 
+              :secretToken="padre.secretToken" 
+            />
           </div>
         </div>
       </div>
@@ -163,6 +201,7 @@
                 <tr v-for="clase in ultimasClases" :key="clase.id">
                   <td class="fw-semibold text-dark py-2" style="font-size: 0.95rem;">
                     {{ clase.student?.nombreCompleto || clase.nombreEstudianteHistorico || '-' }}
+                    <span v-if="clase.esCortesia" class="badge bg-warning text-dark fw-bold ms-1" style="font-size: 0.7rem;">🎟 Cortesía</span>
                   </td>
                   <td class="text-secondary py-2" style="font-size: 0.95rem;">
                     {{ formatearFecha(clase.fecha) }}
@@ -229,6 +268,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { formatearFecha, formatearDinero } from '@/utils/formatters'
+import WompiPaymentWidget from '@/components/WompiPaymentWidget.vue'
 
 const route = useRoute()
 
@@ -240,10 +280,12 @@ const financialLogs = ref([])
 const deudas = ref([])
 const deudaTotal = ref(0)
 const ultimasClases = ref([])
+const esquemaCobro = ref('MENSUALIDAD')
+const clubConfig = ref({})
 const logsLimitados = computed(() => {
   return financialLogs.value
-    .filter(log => log.tipoMovimiento === 'INGRESO_ABONO')
-    .slice(0, 3)
+    .filter(log => log.tipoMovimiento === 'INGRESO_ABONO' || log.tipoMovimiento === 'PAGO_DIRECTO')
+    .slice(0, 5)
 })
 
 const subtotalDeudas = computed(() => {
@@ -256,11 +298,19 @@ const totalAPagar = computed(() => {
   return Math.max(0, totalDeuda - saldo)
 })
 
+const totalClasesDisponibles = computed(() => {
+  return estudiantes.value.reduce((sum, e) => sum + Number(e.clasesDisponibles || 0), 0)
+})
+
 function descripcionMovimiento(log) {
   if (log.tipoMovimiento === 'INGRESO_ABONO') {
-    return log.metodoPago === 'TRANSFERENCIA' ? 'Transferencia' : 'Efectivo'
+    return log.metodoPago === 'TRANSFERENCIA' ? 'Abono (Transferencia)' : 'Abono (Efectivo)'
   }
-  return log.tipoMovimiento || 'Movimiento'
+  if (log.tipoMovimiento === 'PAGO_DIRECTO') {
+    const metodo = log.metodoPago ? ` (${log.metodoPago})` : ''
+    return (log.concepto || 'Pago directo') + metodo
+  }
+  return log.concepto || log.tipoMovimiento || 'Movimiento'
 }
 
 // Mapa de estilos con llaves normalizadas a minúsculas (para match case-insensitive)
@@ -308,6 +358,29 @@ function descripcionNivel(nivel) {
   return partes.length > 1 ? partes.slice(1).join(' ') : nivel
 }
 
+function limpiarConcepto(concepto) {
+  if (!concepto) return 'Cargo pendiente'
+  return concepto.replace(/\s*\(\$[^)]+\)\s*$/, '').trim()
+}
+
+function obtenerNombreDesdeConcepto(concepto) {
+  const limpio = limpiarConcepto(concepto)
+  const partes = limpio.split(' - ')
+  if (partes.length > 1) {
+    return partes[partes.length - 1].trim()
+  }
+  return 'Deportista'
+}
+
+function obtenerSoloConcepto(concepto) {
+  const limpio = limpiarConcepto(concepto)
+  const partes = limpio.split(' - ')
+  if (partes.length > 1) {
+    return partes.slice(0, -1).join(' - ').trim()
+  }
+  return limpio
+}
+
 onMounted(async () => {
   const token = route.params.token
   if (!token) {
@@ -323,14 +396,19 @@ onMounted(async () => {
     padre.value = data.parent
     const estudiantesRaw = data.parent?.students || []
     financialLogs.value = data.financialLogs || []
+    // El servidor ahora retorna una lista unificada de clases + cargos extras
     deudas.value = data.deudas || []
+    // deudaTotal ya viene calculado correctamente desde el servidor (incluye cargos extras)
     deudaTotal.value = data.deudaTotal || 0
+
+    clubConfig.value = data.clubConfig || {}
+    esquemaCobro.value = clubConfig.value.esquemaCobro || 'MENSUALIDAD'
+
     // Enriquecer estudiantes: si un deportista no tiene matrículas, buscar su nivel
-    // desde la lista COMPLETA de asistencias del backend (sin limitar) o deudas
     const todasLasAsistencias = [...(data.ultimasClases || []), ...(data.deudas || [])]
     const estudiantesEnriquecidos = [];
     for (const est of estudiantesRaw) {
-      const estEnriquecido = { ...est } // copia para no mutar el objeto crudo
+      const estEnriquecido = { ...est }
       if (!estEnriquecido.matriculas || estEnriquecido.matriculas.length === 0) {
         const match = todasLasAsistencias.find(
           a => (a.student?.id === est.id) || (a.nombreEstudianteHistorico === est.nombreCompleto)
@@ -343,7 +421,6 @@ onMounted(async () => {
     }
     estudiantes.value = estudiantesEnriquecidos
 
-    // Guardar diccionario de estilos y construir versión normalizada (case-insensitive)
     const raw = data.estilosGrupos || {};
     const normalizados = {};
     for (const [key, val] of Object.entries(raw)) {
@@ -351,12 +428,14 @@ onMounted(async () => {
     }
     estilosLookup.value = normalizados;
 
-    // Solo al final, limitar las últimas clases para la tabla de visualización
+    // Limitar las últimas clases para la tabla de visualización
     ultimasClases.value = (data.ultimasClases || []).slice(0, 3)
 
   } catch (e) {
     if (e.response && e.response.status === 404) {
       error.value = 'Enlace no encontrado o inv&aacute;lido. Verifica que el enlace sea correcto.'
+    } else if (e.response && e.response.status === 403 && e.response.data?.mensaje) {
+      error.value = e.response.data.mensaje
     } else {
       error.value = e.message || 'Error al cargar la informaci&oacute;n del portal.'
     }
