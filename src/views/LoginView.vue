@@ -59,8 +59,6 @@ const password = ref('');
 const cargando = ref(false);
 const errorMsg = ref('');
 
-import { setSession } from '@/utils/auth';
-
 const login = async () => {
   if (!username.value || !password.value) {
     errorMsg.value = 'Completa todos los campos';
@@ -78,15 +76,14 @@ const login = async () => {
 
     const data = response.data;
 
-    // Guardar datos de sesión centralizados
-    setSession(data);
+    // Guardar datos de sesión
+    localStorage.setItem('authToken', data.token);
+    localStorage.setItem('authRole', data.role);
+    localStorage.setItem('authUsername', data.username);
+    localStorage.setItem('authSedes', JSON.stringify(data.sedesAutorizadas || []));
 
-    // Redirigir según el rol
-    if (data.role === 'SUPERADMIN') {
-      router.push('/superadmin');
-    } else {
-      router.push({ name: 'home' });
-    }
+    // Redirigir al dashboard
+    router.push({ name: 'home' });
   } catch (error) {
     if (error.response && error.response.status === 401) {
       errorMsg.value = 'Usuario o contraseña incorrectos';

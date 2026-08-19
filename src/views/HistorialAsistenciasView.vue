@@ -1,67 +1,15 @@
 <template>
   <div>
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-      <h3 class="m-0">📅 Historial de Asistencias</h3>
-      <button
-        v-if="esAdmin"
-        id="btn-exportar-excel"
-        class="btn btn-success fw-bold d-flex align-items-center gap-2 shadow-sm"
-        @click="exportarExcel"
-        :disabled="exportando"
-      >
-        <span v-if="exportando" class="spinner-border spinner-border-sm" role="status"></span>
-        <span>📥 Exportar Planilla (Excel)</span>
-      </button>
-    </div>
+    <h3 class="mb-3 mt-0">📅 Historial de Asistencias</h3>
 
-    <!-- Barra de Filtros -->
-    <div class="card shadow-sm mb-3 border-secondary bg-light">
-      <div class="card-body p-3">
-        <div class="row g-2 align-items-end">
-          <!-- Búsqueda por nombre -->
-          <div class="col-12 col-md-3">
-            <label class="form-label small fw-bold text-secondary mb-1">🔍 Buscar deportista:</label>
-            <input
-              type="text"
-              v-model="searchQuery"
-              class="form-control form-control-sm"
-              placeholder="Nombre..."
-            />
-          </div>
-
-          <!-- Filtro Sede -->
-          <div class="col-12 col-md-3">
-            <label class="form-label small fw-bold text-secondary mb-1">🏢 Sede:</label>
-            <select v-model="sedeFilter" class="form-select form-select-sm">
-              <option value="">Todas las sedes</option>
-              <option v-for="s in sedes" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-            </select>
-          </div>
-
-          <!-- Filtro Fecha Desde -->
-          <div class="col-6 col-md-2">
-            <label class="form-label small fw-bold text-secondary mb-1">📅 Desde:</label>
-            <input type="date" v-model="fechaDesde" class="form-control form-control-sm" />
-          </div>
-
-          <!-- Filtro Fecha Hasta -->
-          <div class="col-6 col-md-2">
-            <label class="form-label small fw-bold text-secondary mb-1">📅 Hasta:</label>
-            <input type="date" v-model="fechaHasta" class="form-control form-control-sm" />
-          </div>
-
-          <!-- Botón Limpiar Filtros -->
-          <div class="col-12 col-md-2">
-            <button
-              class="btn btn-outline-secondary btn-sm w-100 fw-bold"
-              @click="limpiarFiltros"
-              title="Limpiar todos los filtros"
-            >
-              🔄 Limpiar
-            </button>
-          </div>
-        </div>
-      </div>
+    <!-- Buscador por nombre de deportista -->
+    <div class="mb-1">
+      <input
+        type="text"
+        v-model="searchQuery"
+        class="form-control shadow-sm border-secondary"
+        placeholder="🔍 Buscar por nombre de deportista..."
+      />
     </div>
     
     <div class="row g-3 mt-1 align-items-start">
@@ -75,12 +23,12 @@
         />
       </div>
 
-      <div v-if="asistenciasAgrupadas.length === 0" class="col-12 text-center text-muted mt-5 py-4">
-        No hay registros de asistencias que coincidan con los filtros.
+      <div v-if="asistenciasAgrupadas.length === 0" class="col-12 text-center text-muted mt-5">
+        No hay registros de asistencias todavía.
       </div>
     </div>
 
-    <div v-if="totalPaginas > 1" class="d-flex justify-content-center align-items-center mt-3 mb-2 gap-2">
+    <div v-if="totalPaginas > 1" class="d-flex justify-content-center align-items-center mt-2 mb-2 gap-2">
       <button @click="paginaActual--" :disabled="paginaActual === 1" class="btn btn-outline-primary btn-sm fw-bold px-3">
         ⬅ Anterior
       </button>
@@ -89,7 +37,6 @@
         Siguiente ➡
       </button>
     </div>
-
   </div>
 </template>
 
@@ -98,40 +45,21 @@ import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import { formatearFecha } from '@/utils/formatters';
 import AsistenciaCard from '@/components/AsistenciaCard.vue';
-import { useSedes } from '@/utils/useSedes';
 
 const tarjetaAbiertaId = ref(null);
 
 const searchQuery = ref('');
-const sedeFilter = ref('');
-const fechaDesde = ref('');
-const fechaHasta = ref('');
-
 const rawAsistencias = ref([]);
 const precios = ref({ grupal: 40000, personalizada: 50000 });
-// "Precio Especial" solo tiene sentido en esquema Por Clase (ahí sí hay un precio base grupal/
-// personalizada con el que comparar) — en Mensualidad y Paquete el precioCobrado de la asistencia
-// no se compara contra esos precios, así que la etiqueta no debe aparecer en esos esquemas.
-const esquemaCobro = ref('MENSUALIDAD');
 const EMOJI_COLOR_MAP = { '🌱': '#059669', '🔥': '#ea580c', '⭐': '#0d6efd', '💪': '#7c3aed', '⚡': '#ca8a04', '🎯': '#dc2626', '🚀': '#0891b2', '💎': '#9333ea', '🌈': '#d946ef', '🦁': '#d97706' };
+
+import { useSedes } from '@/utils/useSedes';
 
 const { sedes, cargarSedes } = useSedes();
 
 const paginaActual = ref(1);
 const itemsPorPagina = 9;
 
-const esAdmin = computed(() => {
-  const role = localStorage.getItem('authRole');
-  return role === 'ADMIN' || role === 'SUPERADMIN';
-});
-
-const limpiarFiltros = () => {
-  searchQuery.value = '';
-  sedeFilter.value = '';
-  fechaDesde.value = '';
-  fechaHasta.value = '';
-  paginaActual.value = 1;
-};
 
 const getGrupoInfo = (nivel, sedeId) => {
   const fallback = { emoji: '', colorHex: '#10b981' };
@@ -154,35 +82,11 @@ const getGrupoInfo = (nivel, sedeId) => {
 const asistenciasAgrupadas = computed(() => {
   const raw = rawAsistencias.value;
   const busqueda = searchQuery.value.toLowerCase().trim();
-  const filterSedeId = sedeFilter.value ? Number(sedeFilter.value) : null;
-  const desdeMs = fechaDesde.value ? new Date(fechaDesde.value + 'T00:00:00').getTime() : null;
-  const hastaMs = fechaHasta.value ? new Date(fechaHasta.value + 'T23:59:59').getTime() : null;
-
   let datos = raw;
-
-  // Filtro por nombre
   if (busqueda) {
-    datos = datos.filter(a => {
+    datos = raw.filter(a => {
       const nombre = a.nombreEstudiante || a.nombreEstudianteHistorico || '';
       return nombre.toLowerCase().includes(busqueda);
-    });
-  }
-
-  // Filtro por Sede
-  if (filterSedeId) {
-    datos = datos.filter(a => a.sedeId === filterSedeId);
-  }
-
-  // Filtro por Rango de Fechas
-  if (desdeMs || hastaMs) {
-    datos = datos.filter(a => {
-      if (!a.fecha) return false;
-      const fDate = Array.isArray(a.fecha)
-        ? new Date(a.fecha[0], a.fecha[1] - 1, a.fecha[2]).getTime()
-        : new Date(a.fecha).getTime();
-      if (desdeMs && fDate < desdeMs) return false;
-      if (hastaMs && fDate > hastaMs) return false;
-      return true;
     });
   }
 
@@ -219,7 +123,7 @@ const asistenciasAgrupadas = computed(() => {
       grupos[key] = {
         id: key, tiempoMs: new Date(yyyy, mm - 1, dd, hh, min).getTime(),
         fechaDisplay: formatearFecha(a.fecha),
-        titulo, color, sede: a.sedeNombre || null,
+        titulo, color,        sede: a.sedeNombre || null,
         estudiantes: [], pendientesCount: 0
       };
     }
@@ -227,30 +131,23 @@ const asistenciasAgrupadas = computed(() => {
     const pGrupal = Number(precios.value.grupal || 40000);
     const pPersonalizada = Number(precios.value.personalizada || 50000);
     const precio = Number(a.precioCobrado);
-    const esPrecioEspecial = esquemaCobro.value === 'POR_CLASE' && ![pGrupal, pPersonalizada].includes(precio);
+    const esPrecioEspecial = ![pGrupal, pPersonalizada].includes(precio);
 
     grupos[key].estudiantes.push({
       idAsistencia: a.id,
-      studentId: a.studentId || null,
       nombre: a.nombreEstudiante || a.nombreEstudianteHistorico || "Estudiante retirado",
-      pagada: a.clasePaga,
-      precioCobrado: precio,
-      esPrecioEspecial,
-      esCortesia: Boolean(a.esCortesia),
-      fueraDePlan: Boolean(a.fueraDePlan),
-      motivoFueraDePlan: a.motivoFueraDePlan || null,
-      telefonoAcudienteCortesia: a.telefonoAcudienteCortesia,
-      sedeId: a.sedeId,
-      nivel: a.nivel,
-      registradoPorId: a.registradoPorId,
-      registradoPorNombre: a.registradoPorNombre
+      pagada: a.clasePaga, precioCobrado: precio, esPrecioEspecial
     });
   });
 
   return Object.values(grupos).map(g => {
     g.pendientesCount = g.estudiantes.filter(e => !e.pagada).length;
     return g;
-  }).sort((a, b) => b.tiempoMs - a.tiempoMs); // más reciente (fecha más alta) primero, sin importar si tiene pendientes de pago
+  }).sort((a, b) => {
+    if (a.pendientesCount > 0 && b.pendientesCount === 0) return -1;
+    if (a.pendientesCount === 0 && b.pendientesCount > 0) return 1;
+    return b.tiempoMs - a.tiempoMs;
+  });
 });
 
 const totalPaginas = computed(() => Math.ceil(asistenciasAgrupadas.value.length / itemsPorPagina));
@@ -260,11 +157,12 @@ const asistenciasPaginadas = computed(() => {
   return asistenciasAgrupadas.value.slice(inicio, inicio + itemsPorPagina);
 });
 
-watch([searchQuery, sedeFilter, fechaDesde, fechaHasta], () => { paginaActual.value = 1; });
+watch(searchQuery, () => { paginaActual.value = 1; });
 
 const cargarAsistencias = async () => {
   try {
     const response = await axios.get('/api/finanzas/historial-asistencias');
+    // El backend ya filtra por sede para EMPLEADO (findBySedeIdIn)
     rawAsistencias.value = response.data;
   } catch (error) { console.error("Error:", error); }
 };
@@ -274,13 +172,6 @@ const cargarPrecios = async () => {
     const res = await axios.get('/api/public/precios');
     precios.value = res.data;
   } catch (e) { console.error('Error cargando precios:', e); }
-};
-
-const cargarEsquemaCobro = async () => {
-  try {
-    const res = await axios.get('/api/config/cobro');
-    esquemaCobro.value = res.data?.esquemaCobro || 'MENSUALIDAD';
-  } catch (e) { esquemaCobro.value = 'MENSUALIDAD'; }
 };
 
 const eliminarRegistro = async (idAsistencia) => {
@@ -301,43 +192,7 @@ const eliminarListaCompleta = async (grupo) => {
   } catch (error) { alert("Error al eliminar la lista."); }
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// FASE 3 — EXPORTACIÓN DE PLANILLA A EXCEL
-// ═══════════════════════════════════════════════════════════════════════════
-const exportando = ref(false);
 
-const exportarExcel = async () => {
-  exportando.value = true;
-  try {
-    const params = {};
-    if (sedeFilter.value) params.sedeId = sedeFilter.value;
-    if (fechaDesde.value) params.fechaDesde = fechaDesde.value;
-    if (fechaHasta.value) params.fechaHasta = fechaHasta.value;
 
-    const response = await axios.get('/api/finanzas/exportar-asistencias', {
-      params,
-      responseType: 'blob'
-    });
-
-    const disposition = response.headers['content-disposition'] || '';
-    const match = disposition.match(/filename="?([^"]+)"?/);
-    const filename = match ? match[1] : 'planilla_asistencias.xlsx';
-
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (e) {
-    console.error("Error al exportar Excel:", e);
-    alert("❌ Error al exportar la planilla en Excel.");
-  } finally {
-    exportando.value = false;
-  }
-};
-
-onMounted(() => { cargarAsistencias(); cargarSedes(); cargarPrecios(); cargarEsquemaCobro(); });
+onMounted(() => { cargarAsistencias(); cargarSedes(); cargarPrecios(); });
 </script>

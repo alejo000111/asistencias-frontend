@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { isAuthenticated, isAdmin, isSuperAdmin, clearSession } from '@/utils/auth'
 import HomeView from '@/views/HomeView.vue'
 import ClientesView from '../views/ClientesView.vue'
 import RegistroView from '../views/RegistroView.vue'
@@ -35,7 +34,7 @@ const routes = [
     path: '/caja',
     name: 'caja',
     component: CajaView,
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true }
   },
   {
     path: '/historial-asistencias',
@@ -53,53 +52,12 @@ const routes = [
     path: '/gestion-sedes',
     name: 'gestion-sedes',
     component: () => import('../views/GestionSedesView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { requiresAuth: true }
   },
   {
     path: '/gestion-empleados',
     name: 'gestion-empleados',
     component: () => import('../views/GestionEmpleadosView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/nomina',
-    name: 'nomina',
-    component: () => import('../views/NominaView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/superadmin',
-    name: 'superadmin',
-    component: () => import('../views/SuperAdminView.vue'),
-    meta: { requiresAuth: true, requiresSuperAdmin: true }
-  },
-  {
-    path: '/ajustes-cobros',
-    name: 'ajustes-cobros',
-    component: () => import('../views/AjustesCobrosView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/esquema-cobro',
-    name: 'esquema-cobro',
-    component: () => import('../views/EsquemaCobroView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true }
-  },
-  {
-    path: '/configuracion',
-    name: 'configuracion',
-    component: () => import('../views/ConfiguracionView.vue'),
-    // No requiresAdmin: la pestaña "Seguridad y Contraseña" es de cualquier usuario autenticado.
-    // La pestaña "Configuración General" (solo ADMIN/SUPERADMIN) se oculta dentro del propio componente.
-    meta: { requiresAuth: true }
-  },
-  {
-    // Ruta desconocida: para un usuario AUTENTICADO se muestra una vista 404 real
-    // (antes rebotaba en silencio a 'home' sin explicación). El guard de abajo ya
-    // redirige a 'login' cuando no hay sesión, sin necesidad de un redirect aquí.
-    path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    component: () => import('../views/NotFoundView.vue'),
     meta: { requiresAuth: true }
   }
 ]
@@ -109,42 +67,23 @@ const router = createRouter({
   routes
 })
 
-// --- Guard de navegación: proteger rutas (Sintaxis moderna Vue Router 4) ---
-router.beforeEach((to) => {
-  const autenticado = isAuthenticated();
-  const esAdminUser = isAdmin();
-  const esSuperAdminUser = isSuperAdmin();
+// --- Guard de navegación: proteger rutas ---
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('authToken');
 
-  // 1. Si es SuperAdmin y navega a la raíz '/', login o rutas operativas, redirigir a '/superadmin'
-  if (autenticado && esSuperAdminUser && (to.path === '/' || to.name === 'login' || to.name === 'home')) {
-    return { name: 'superadmin' };
-  }
-
-  // 2. Rutas públicas (login y portal de padres)
+  // Rutas públicas (login y portal de padres)
   if (to.meta.public) {
-    if (autenticado && to.name === 'login') {
-      return esSuperAdminUser ? { name: 'superadmin' } : { name: 'home' };
-    }
-    return true;
+    return next();
   }
 
-  // 3. Rutas protegidas: redirigir inmediatamente a login si no hay token válido
-  if (!autenticado) {
-    clearSession();
-    return { name: 'login' };
+  // Rutas protegidas: redirigir a login si no hay token
+  if (!token) {
+    // Limpiar cualquier residuo de sesión anterior
+    localStorage.clear();
+    return next({ name: 'login' });
   }
 
-  // 4. Rutas exclusivas de ADMIN (caja, sedes, empleados, ajustes cobros)
-  if (to.meta.requiresAdmin && !esAdminUser && !esSuperAdminUser) {
-    return { name: 'home' };
-  }
-
-  // 5. Rutas exclusivas de SUPERADMIN
-  if (to.meta.requiresSuperAdmin && !esSuperAdminUser) {
-    return { name: 'home' };
-  }
-
-  return true;
+  next();
 });
 
 export default router
