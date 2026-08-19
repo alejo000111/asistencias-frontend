@@ -62,6 +62,12 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/nomina',
+    name: 'nomina',
+    component: () => import('../views/NominaView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: '/superadmin',
     name: 'superadmin',
     component: () => import('../views/SuperAdminView.vue'),
@@ -74,11 +80,27 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/esquema-cobro',
+    name: 'esquema-cobro',
+    component: () => import('../views/EsquemaCobroView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/configuracion',
+    name: 'configuracion',
+    component: () => import('../views/ConfiguracionView.vue'),
+    // No requiresAdmin: la pestaña "Seguridad y Contraseña" es de cualquier usuario autenticado.
+    // La pestaña "Configuración General" (solo ADMIN/SUPERADMIN) se oculta dentro del propio componente.
+    meta: { requiresAuth: true }
+  },
+  {
+    // Ruta desconocida: para un usuario AUTENTICADO se muestra una vista 404 real
+    // (antes rebotaba en silencio a 'home' sin explicación). El guard de abajo ya
+    // redirige a 'login' cuando no hay sesión, sin necesidad de un redirect aquí.
     path: '/:pathMatch(.*)*',
     name: 'not-found',
-    redirect: () => {
-      return isAuthenticated() ? { name: 'home' } : { name: 'login' };
-    }
+    component: () => import('../views/NotFoundView.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -91,28 +113,34 @@ const router = createRouter({
 router.beforeEach((to) => {
   const autenticado = isAuthenticated();
   const esAdminUser = isAdmin();
+  const esSuperAdminUser = isSuperAdmin();
 
-  // 1. Rutas públicas (login y portal de padres)
+  // 1. Si es SuperAdmin y navega a la raíz '/', login o rutas operativas, redirigir a '/superadmin'
+  if (autenticado && esSuperAdminUser && (to.path === '/' || to.name === 'login' || to.name === 'home')) {
+    return { name: 'superadmin' };
+  }
+
+  // 2. Rutas públicas (login y portal de padres)
   if (to.meta.public) {
     if (autenticado && to.name === 'login') {
-      return { name: 'home' };
+      return esSuperAdminUser ? { name: 'superadmin' } : { name: 'home' };
     }
     return true;
   }
 
-  // 2. Rutas protegidas: redirigir inmediatamente a login si no hay token válido
+  // 3. Rutas protegidas: redirigir inmediatamente a login si no hay token válido
   if (!autenticado) {
     clearSession();
     return { name: 'login' };
   }
 
-  // 3. Rutas exclusivas de ADMIN (caja, sedes, empleados, ajustes cobros)
-  if (to.meta.requiresAdmin && !esAdminUser) {
+  // 4. Rutas exclusivas de ADMIN (caja, sedes, empleados, ajustes cobros)
+  if (to.meta.requiresAdmin && !esAdminUser && !esSuperAdminUser) {
     return { name: 'home' };
   }
 
-  // 4. Rutas exclusivas de SUPERADMIN
-  if (to.meta.requiresSuperAdmin && !isSuperAdmin()) {
+  // 5. Rutas exclusivas de SUPERADMIN
+  if (to.meta.requiresSuperAdmin && !esSuperAdminUser) {
     return { name: 'home' };
   }
 

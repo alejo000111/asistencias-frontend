@@ -6,6 +6,11 @@ const token = ref(localStorage.getItem('authToken') || '');
 const role = ref(localStorage.getItem('authRole') || '');
 const username = ref(localStorage.getItem('authUsername') || '');
 const sedes = ref(JSON.parse(localStorage.getItem('authSedes') || '[]'));
+const clubEstado = ref(localStorage.getItem('authClubEstado') || 'AL_DIA');
+const maxPermitido = ref(localStorage.getItem('authMaxPermitido') || '');
+const deportistasActivos = ref(localStorage.getItem('authDeportistasActivos') || '0');
+const puedeRecaudar = ref(localStorage.getItem('authPuedeRecaudar') === 'true');
+const userId = ref(localStorage.getItem('authUserId') || '');
 
 /**
  * Decodifica la carga útil (payload) de un token JWT en formato Base64.
@@ -71,12 +76,37 @@ export function getAuthUsername() {
   return username.value || localStorage.getItem('authUsername') || '';
 }
 
+export function getAuthUserId() {
+  const id = userId.value || localStorage.getItem('authUserId');
+  return id ? Number(id) : null;
+}
+
 export function getAuthSedes() {
   try {
     return sedes.value.length ? sedes.value : JSON.parse(localStorage.getItem('authSedes') || '[]');
   } catch (e) {
     return [];
   }
+}
+
+export function getClubEstado() {
+  return clubEstado.value || localStorage.getItem('authClubEstado') || 'AL_DIA';
+}
+
+export function isClubSuspendido() {
+  return getClubEstado() === 'SUSPENDIDO_POR_MORA';
+}
+
+export function puedeRecaudarPagos() {
+  if (!isTokenValid()) return false;
+  return isAdmin() || puedeRecaudar.value || localStorage.getItem('authPuedeRecaudar') === 'true';
+}
+
+export function isLimiteAlcanzado() {
+  const max = maxPermitido.value || localStorage.getItem('authMaxPermitido');
+  const activos = parseInt(deportistasActivos.value || localStorage.getItem('authDeportistasActivos') || '0', 10);
+  if (!max || max === 'null' || max === 'undefined') return false;
+  return activos >= parseInt(max, 10);
 }
 
 /**
@@ -87,11 +117,21 @@ export function setSession(data) {
   role.value = data.role || '';
   username.value = data.username || '';
   sedes.value = data.sedesAutorizadas || [];
+  clubEstado.value = data.clubEstado || 'AL_DIA';
+  maxPermitido.value = data.maxPermitido != null ? String(data.maxPermitido) : '';
+  deportistasActivos.value = data.deportistasActivos != null ? String(data.deportistasActivos) : '0';
+  puedeRecaudar.value = data.puedeRecaudar === true;
+  userId.value = data.userId != null ? String(data.userId) : '';
 
   localStorage.setItem('authToken', token.value);
   localStorage.setItem('authRole', role.value);
   localStorage.setItem('authUsername', username.value);
   localStorage.setItem('authSedes', JSON.stringify(sedes.value));
+  localStorage.setItem('authClubEstado', clubEstado.value);
+  localStorage.setItem('authMaxPermitido', maxPermitido.value);
+  localStorage.setItem('authDeportistasActivos', deportistasActivos.value);
+  localStorage.setItem('authPuedeRecaudar', String(puedeRecaudar.value));
+  localStorage.setItem('authUserId', userId.value);
 }
 
 /**
@@ -102,11 +142,21 @@ export function clearSession() {
   role.value = '';
   username.value = '';
   sedes.value = [];
+  clubEstado.value = 'AL_DIA';
+  maxPermitido.value = '';
+  deportistasActivos.value = '0';
+  puedeRecaudar.value = false;
+  userId.value = '';
 
   localStorage.removeItem('authToken');
   localStorage.removeItem('authRole');
   localStorage.removeItem('authUsername');
   localStorage.removeItem('authSedes');
+  localStorage.removeItem('authClubEstado');
+  localStorage.removeItem('authMaxPermitido');
+  localStorage.removeItem('authDeportistasActivos');
+  localStorage.removeItem('authPuedeRecaudar');
+  localStorage.removeItem('authUserId');
   localStorage.clear();
 
   if (router && router.currentRoute.value.name !== 'login' && !router.currentRoute.value.meta?.public) {
