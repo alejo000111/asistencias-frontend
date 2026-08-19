@@ -11,9 +11,9 @@ const loading = ref(false)
  * Reemplaza las funciones cargarSedes() duplicadas en 7 vistas.
  */
 export function useSedes() {
-  const cargarSedes = async (force = true) => {
+  const cargarSedes = async (force = false) => {
     if (loading.value) return
-    if (sedesCargadas.value && sedes.value.length > 0 && force === false) return
+    if (sedesCargadas.value && sedes.value.length > 0 && !force) return
     loading.value = true
     try {
       const res = await axios.get('/api/sedes')

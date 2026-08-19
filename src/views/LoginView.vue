@@ -81,12 +81,8 @@ const login = async () => {
     // Guardar datos de sesión centralizados
     setSession(data);
 
-    // Redirigir según el rol
-    if (data.role === 'SUPERADMIN') {
-      router.push('/superadmin');
-    } else {
-      router.push({ name: 'home' });
-    }
+    // Redirigir al dashboard
+    router.push({ name: 'home' });
   } catch (error) {
     if (error.response && error.response.status === 401) {
       errorMsg.value = 'Usuario o contraseña incorrectos';

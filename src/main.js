@@ -32,13 +32,9 @@ if (import.meta.env.PROD && import.meta.env.VITE_API_URL) {
 
 import { clearSession } from '@/utils/auth';
 
-// --- Interceptor de PETICIONES: inyectar token JWT y registrar actividad ---
+// --- Interceptor de PETICIONES: inyectar token JWT ---
 axios.interceptors.request.use(
   config => {
-    // Registrar actividad en cada petición al backend
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('app:user-activity'));
-    }
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -56,13 +52,8 @@ axios.interceptors.response.use(
       const status = error.response.status;
 
       if (status === 401) {
-        // 401 = No autenticado o token inválido/expirado — alertar al usuario y redirigir a login
+        // 401 = No autenticado o token inválido/expirado — purgar sesión y redirigir inmediatamente
         console.warn('⚠️ Petición 401 recibida: purgando sesión y redirigiendo a login...');
-        if (!window.sessionExpiredAlertShown && window.location.pathname !== '/login') {
-          window.sessionExpiredAlertShown = true;
-          alert('🔒 Tu sesión ha expirado por seguridad. Por favor, vuelve a ingresar.');
-          setTimeout(() => { window.sessionExpiredAlertShown = false; }, 4000);
-        }
         clearSession();
         return Promise.reject(error);
       }
@@ -93,10 +84,4 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 
-// Esperar a que el router resuelva la navegación inicial ANTES de montar: si se monta antes,
-// App.vue lee `route.path` en su valor por defecto (no la ruta real de la URL, ej. /portal/:token)
-// durante el primer render, cree que no es una ruta pública y fuerza un redirect a /login —
-// rompiendo links públicos como el portal de padres justo en la primera carga.
-router.isReady().then(() => {
-  app.mount('#app')
-})
+app.mount('#app')
