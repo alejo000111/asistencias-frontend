@@ -225,22 +225,24 @@ const enviarAbono = async () => {
 <style scoped>
 .cpf-wrap {
   padding: 16px;
-  background: #fff;
+  background: var(--card-bg);
+  color: var(--text-primary);
 }
 .cpf-title {
   font-weight: 700;
   margin-bottom: 12px;
   font-size: 1rem;
+  color: var(--text-primary);
 }
 .cpf-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-secondary);
   display: block;
   margin-bottom: 4px;
 }
 .cpf-loading, .cpf-empty {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.85rem;
   padding: 12px 0;
 }
@@ -253,24 +255,26 @@ const enviarAbono = async () => {
   overflow-y: auto;
 }
 .cpf-paquete-card {
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border-primary);
   border-radius: 8px;
   padding: 10px 12px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  background: var(--bg-primary);
 }
 .cpf-paquete-card:hover {
   border-color: #6366f1;
-  background: #f0f0ff;
+  background: rgba(99, 102, 241, 0.08);
 }
 .cpf-paquete-card--selected {
   border-color: #6366f1;
-  background: #ede9fe;
+  background: rgba(99, 102, 241, 0.15);
 }
 .cpf-paquete-nombre {
   font-weight: 600;
   font-size: 0.9rem;
   margin-bottom: 4px;
+  color: var(--text-primary);
 }
 .cpf-paquete-meta {
   display: flex;
@@ -284,19 +288,20 @@ const enviarAbono = async () => {
   font-weight: 600;
 }
 .cpf-badge--clases {
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
 }
 .cpf-badge--precio {
-  background: #d1fae5;
-  color: #065f46;
+  background: rgba(22, 163, 74, 0.15);
+  color: #4ade80;
 }
 .cpf-detalle {
-  background: #f9fafb;
+  background: var(--bg-tertiary);
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 12px;
   font-size: 0.85rem;
+  color: var(--text-primary);
 }
 .cpf-detalle p {
   margin: 2px 0;
@@ -313,21 +318,43 @@ const enviarAbono = async () => {
   margin-bottom: 4px;
 }
 .cpf-resumen {
-  background: #f0fdf4;
-  border: 1px solid #86efac;
+  background: rgba(22, 163, 74, 0.12);
+  border: 1px solid rgba(22, 163, 74, 0.35);
   border-radius: 8px;
   padding: 10px 14px;
   margin: 10px 0;
   font-size: 0.85rem;
   text-align: left;
+  color: var(--text-primary);
 }
 .cpf-resumen p { margin: 2px 0; }
 .cpf-hint {
   font-size: 0.82rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 .cpf-abono-wrap {
   text-align: left;
+}
+
+/* ——— Móvil: evitar zoom automático en selects/inputs y mejorar toque ——— */
+@media (max-width: 576px) {
+  .cpf-wrap {
+    padding: 12px;
+  }
+  .cpf-wrap :deep(.form-select) {
+    font-size: 16px;
+  }
+  .cpf-paquete-card {
+    padding: 12px;
+  }
+  .cpf-paquetes-list {
+    max-height: 260px;
+  }
+  .cpf-btn-full {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-size: 0.95rem;
+  }
 }
 </style>
